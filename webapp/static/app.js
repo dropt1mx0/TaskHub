@@ -9,8 +9,8 @@ let initData = "";
 if (tg) {
   tg.ready();
   tg.expand();
-  tg.setHeaderColor("#0d0d0f");
-  tg.setBackgroundColor("#0d0d0f");
+  tg.setHeaderColor("#0a0a0a");
+  tg.setBackgroundColor("#0a0a0a");
   initData = tg.initData || "";
 }
 
@@ -63,7 +63,7 @@ function esc(s) { const d = document.createElement("div"); d.textContent = s || 
 
 // ─── Confetti ────────────────────────────────────────────────────
 function showConfetti() {
-  const colors = ["#6c5ce7", "#a29bfe", "#00d68f", "#ffd43b", "#ff6b6b", "#339af0", "#f06595", "#22b8cf"];
+  const colors = ["#2196F3", "#4FC3F7", "#66BB6A", "#FFD740", "#EF5350", "#7C4DFF", "#EC407A", "#26C6DA"];
   for (let i = 0; i < 40; i++) {
     const piece = document.createElement("div");
     piece.className = "confetti-piece";
@@ -132,6 +132,7 @@ async function init() {
     isAdmin = data.is_admin || false;
     updateHeader(data);
     updateBalance(data);
+    updateStats(data);
 
     // Show admin tab if user is admin
     if (isAdmin) {
@@ -160,7 +161,20 @@ function updateHeader(data) {
   $("#headerAvatar").textContent = initial;
   $("#headerName").textContent = data.first_name || data.username || "TaskHub";
   $("#headerBalance").textContent = fmt(data.balance) + " USDT";
-  $("#headerStreak").textContent = (data.login_streak || 0) + "d";
+  const streak = data.login_streak || 0;
+  $("#headerStreak").innerHTML = "\uD83D\uDD25 " + streak + "d";
+}
+
+function updateStats(data) {
+  const streak = data.login_streak || 0;
+  const el = $("#streakVal");
+  if (el) el.textContent = streak;
+  const st = $("#statTasks");
+  if (st) st.textContent = data.tasks_completed || 0;
+  const se = $("#statEarned");
+  if (se) se.textContent = fmt(data.total_earned);
+  const sf = $("#statFriends");
+  if (sf) sf.textContent = data.referral_count || 0;
 }
 
 function updateBalance(data) {
@@ -178,13 +192,7 @@ async function loadTasks() {
   if (!data.tasks || data.tasks.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
-        <div class="empty-sticker">
-          <svg viewBox="0 0 100 100" fill="none"><rect x="20" y="10" width="60" height="75" rx="8" stroke="#636366" stroke-width="2" fill="none"/>
-          <line x1="35" y1="32" x2="65" y2="32" stroke="#636366" stroke-width="2" stroke-linecap="round"/>
-          <line x1="35" y1="44" x2="58" y2="44" stroke="#636366" stroke-width="2" stroke-linecap="round"/>
-          <line x1="35" y1="56" x2="52" y2="56" stroke="#636366" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="72" cy="68" r="18" fill="#6c5ce7" opacity=".2"/><path d="M66 68l4 4 8-8" stroke="#6c5ce7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
+        <lottie-player src="https://assets2.lottiefiles.com/packages/lf20_kkflmtur.json" background="transparent" speed="1" style="width:120px;height:120px" autoplay loop></lottie-player>
         <p>No tasks available right now</p>
       </div>`;
     return;
@@ -244,6 +252,7 @@ function openTask(taskId) {
         userData.tasks_completed = (userData.tasks_completed || 0) + 1;
         updateHeader(userData);
         updateBalance(userData);
+        updateStats(userData);
       }
       overlay.remove();
       loadTasks();
@@ -258,8 +267,8 @@ function openTask(taskId) {
 
 // ─── Fortune Wheel (Canvas) ──────────────────────────────────────
 const WHEEL_COLORS = [
-  "#6c5ce7", "#00d68f", "#339af0", "#ffd43b",
-  "#f06595", "#22b8cf", "#ff6b6b", "#a29bfe"
+  "#2196F3", "#66BB6A", "#7C4DFF", "#FFD740",
+  "#EC407A", "#26C6DA", "#EF5350", "#4FC3F7"
 ];
 
 function drawWheel(angle = 0) {
@@ -292,7 +301,7 @@ function drawWheel(angle = 0) {
     const dotY = cy + (outerR - 4) * Math.sin(dotAngle);
     ctx.beginPath();
     ctx.arc(dotX, dotY, 2, 0, 2 * Math.PI);
-    ctx.fillStyle = i % 2 === 0 ? "rgba(255,255,255,.3)" : "rgba(108,92,231,.4)";
+    ctx.fillStyle = i % 2 === 0 ? "rgba(255,255,255,.3)" : "rgba(33,150,243,.4)";
     ctx.fill();
   }
 
@@ -346,8 +355,8 @@ function drawWheel(angle = 0) {
   ctx.beginPath();
   ctx.arc(cx, cy, 23, 0, 2 * Math.PI);
   const centerGrad = ctx.createLinearGradient(cx - 23, cy - 23, cx + 23, cy + 23);
-  centerGrad.addColorStop(0, "#6c5ce7");
-  centerGrad.addColorStop(1, "#a29bfe");
+  centerGrad.addColorStop(0, "#2196F3");
+  centerGrad.addColorStop(1, "#64B5F6");
   ctx.fillStyle = centerGrad;
   ctx.fill();
 
@@ -469,6 +478,7 @@ async function finishSpin(resultPromise) {
       userData.on_hold = res.on_hold;
       updateHeader(userData);
       updateBalance(userData);
+      updateStats(userData);
     }
 
     setTimeout(() => resultEl.classList.add("hidden"), 5000);
@@ -864,8 +874,8 @@ async function adminSendBroadcast() {
   const resultEl = $("#broadcastResult");
   resultEl.classList.remove("hidden");
   if (res.success) {
-    resultEl.style.background = "var(--green-glow)";
-    resultEl.style.color = "var(--green)";
+    resultEl.style.background = "rgba(76,175,80,.1)";
+    resultEl.style.color = "var(--green-light)";
     resultEl.textContent = `Sent: ${res.success_count} | Failed: ${res.failed_count}`;
     haptic("success");
   } else {

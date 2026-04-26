@@ -73,6 +73,7 @@ def validate_init_data(init_data: str, bot_token: str) -> dict | None:
 async def get_user_from_request(request: web.Request) -> tuple[dict | None, User | None]:
     """
     Extract and validate Telegram user from the Authorization header.
+    Auto-creates user if they don't exist (first Mini App visit).
     Returns (tg_user_dict, db_user) or (None, None).
     """
     auth = request.headers.get("Authorization", "")
@@ -89,7 +90,16 @@ async def get_user_from_request(request: web.Request) -> tuple[dict | None, User
         return None, None
 
     async with await db.get_session() as session:
-        user = await UserQueries.get_user(session, user_id)
+        # get_or_create: auto-register users who open the Mini App
+        user = await UserQueries.get_or_create(
+            session,
+            user_id,
+            username=tg_user.get("username"),
+            first_name=tg_user.get("first_name"),
+            last_name=tg_user.get("last_name"),
+            is_premium=tg_user.get("is_premium", False),
+            language=tg_user.get("language_code", "ru"),
+        )
 
     return tg_user, user
 
@@ -133,8 +143,9 @@ async def api_me(request: web.Request):
 
     bot_me = None
     try:
-        from bot import bot as telegram_bot
-        bot_me = await telegram_bot.get_me()
+        import bot as bot_module
+        if bot_module.bot is not None:
+            bot_me = await bot_module.bot.get_me()
     except Exception:
         pass
 
@@ -604,12 +615,16 @@ async def api_admin_broadcast(request: web.Request):
     success_count = 0
     failed_count = 0
     try:
-        from bot import bot as telegram_bot
+        import bot as bot_module
+        telegram_bot = bot_module.bot
+        if telegram_bot is None:
+            return error_response("Bot not initialized yet")
         for uid in user_ids:
             try:
                 await telegram_bot.send_message(uid, text, parse_mode='HTML')
                 success_count += 1
-            except Exception:
+            except Exception as send_err:
+                logger.debug(f"Broadcast send failed to {uid}: {send_err}")
                 failed_count += 1
             await asyncio.sleep(0.05)
     except Exception as e:
