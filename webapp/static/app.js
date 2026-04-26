@@ -60,6 +60,40 @@ function haptic(type = "impact") {
 
 function esc(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
 
+// ─── Sticker System (Lottie JSON) ────────────────────────────────
+async function initStickers(root = document) {
+  const slots = root.querySelectorAll(".sticker-slot:not([data-loaded])");
+  for (const slot of slots) {
+    const name = slot.dataset.sticker;
+    const w = slot.dataset.w || "80";
+    const h = slot.dataset.h || "80";
+    const fallback = slot.dataset.fallback || "";
+    const localUrl = `/static/stickers/${name}.json`;
+
+    slot.setAttribute("data-loaded", "1");
+    slot.style.width = w + "px";
+    slot.style.height = h + "px";
+
+    let src = fallback;
+    try {
+      const check = await fetch(localUrl, { method: "HEAD" });
+      if (check.ok) src = localUrl;
+    } catch (_) {}
+
+    if (src) {
+      const player = document.createElement("lottie-player");
+      player.setAttribute("src", src);
+      player.setAttribute("background", "transparent");
+      player.setAttribute("speed", "1");
+      player.setAttribute("autoplay", "");
+      player.setAttribute("loop", "");
+      player.style.width = w + "px";
+      player.style.height = h + "px";
+      slot.appendChild(player);
+    }
+  }
+}
+
 // ─── Confetti ────────────────────────────────────────────────────
 function showConfetti() {
   const colors = ["#2196F3", "#4FC3F7", "#66BB6A", "#FFD740", "#EF5350", "#7C4DFF", "#EC407A", "#26C6DA"];
@@ -158,11 +192,10 @@ async function loadTasks() {
   if (!data.tasks || data.tasks.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
-        <img class="sticker" style="width:120px;height:120px" src="/static/stickers/tasks-empty.gif"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='block'" alt="">
-        <lottie-player style="display:none;width:120px;height:120px" src="https://assets2.lottiefiles.com/packages/lf20_kkflmtur.json" background="transparent" speed="1" autoplay loop></lottie-player>
+        <div class="sticker-slot" data-sticker="tasks-empty" data-w="120" data-h="120" data-fallback="https://assets2.lottiefiles.com/packages/lf20_kkflmtur.json"></div>
         <p>Нет доступных заданий</p>
       </div>`;
+    initStickers(list);
     return;
   }
 
@@ -931,4 +964,5 @@ async function adminCreateTask() {
 }
 
 // ─── Boot ────────────────────────────────────────────────────────
+initStickers();
 init();

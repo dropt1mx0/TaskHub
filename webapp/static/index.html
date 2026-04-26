@@ -12,11 +12,7 @@
 
   <!-- ─── Splash ─── -->
   <div id="splash" class="splash">
-    <!-- Sticker: splash.gif (200x200) — duck with FREE cap -->
-    <img id="stickerSplash" class="splash-sticker sticker" src="/static/stickers/splash.gif"
-         onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
-         alt="">
-    <lottie-player style="display:none;width:200px;height:200px" src="https://assets2.lottiefiles.com/packages/lf20_UJNc2t.json" background="transparent" speed="1" autoplay loop></lottie-player>
+    <div class="sticker-slot splash-sticker" data-sticker="splash" data-w="200" data-h="200" data-fallback="https://assets2.lottiefiles.com/packages/lf20_UJNc2t.json"></div>
     <h2 class="splash-title">Задания</h2>
     <div class="splash-dots"><span></span><span></span><span></span></div>
   </div>
@@ -31,10 +27,7 @@
         <div class="sub-title">Доп. задания</div>
         <div id="tasksList" class="tasks-list">
           <div class="empty-state">
-            <!-- Sticker: tasks-empty.gif (120x120) -->
-            <img id="stickerTasksEmpty" class="sticker" style="width:120px;height:120px" src="/static/stickers/tasks-empty.gif"
-                 onerror="this.style.display='none';this.nextElementSibling.style.display='block'" alt="">
-            <lottie-player style="display:none;width:120px;height:120px" src="https://assets2.lottiefiles.com/packages/lf20_kkflmtur.json" background="transparent" speed="1" autoplay loop></lottie-player>
+            <div class="sticker-slot" data-sticker="tasks-empty" data-w="120" data-h="120" data-fallback="https://assets2.lottiefiles.com/packages/lf20_kkflmtur.json"></div>
             <p>Нет доступных заданий</p>
           </div>
         </div>
@@ -56,9 +49,7 @@
             Следующий спин через <span id="cooldownTime">--:--</span>
           </div>
           <div class="wheel-result hidden" id="wheelResult">
-            <!-- Sticker: wheel-win.gif (100x100) -->
-            <img id="stickerWheelWin" class="sticker" style="width:60px;height:60px" src="/static/stickers/wheel-win.gif"
-                 onerror="this.style.display='none'" alt="">
+            <div class="sticker-slot" data-sticker="wheel-win" data-w="60" data-h="60" data-fallback="https://assets2.lottiefiles.com/packages/lf20_obhph3sh.json"></div>
             <span class="wheel-result-text">Вы выиграли <b id="wheelRewardText">0</b> USDT!</span>
           </div>
           <div class="sub-title">Последние спины</div>
@@ -70,10 +61,7 @@
       <section class="page hidden" id="pageReferrals">
         <div class="page-title-bar"><h1>Друзья</h1></div>
         <div class="referral-card">
-          <!-- Sticker: referral.gif (100x100) -->
-          <img id="stickerReferral" class="sticker" style="width:100px;height:100px;margin:0 auto 10px;display:block" src="/static/stickers/referral.gif"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='block'" alt="">
-          <lottie-player style="display:none;width:100px;height:100px;margin:0 auto 10px" src="https://assets2.lottiefiles.com/packages/lf20_v1yudlrx.json" background="transparent" speed="1" autoplay loop></lottie-player>
+          <div class="sticker-slot" style="margin:0 auto 10px" data-sticker="referral" data-w="100" data-h="100" data-fallback="https://assets2.lottiefiles.com/packages/lf20_v1yudlrx.json"></div>
           <p class="referral-desc">Приглашайте друзей и зарабатывайте бонусы!</p>
           <div class="referral-stats">
             <div class="ref-stat"><span class="ref-stat-val" id="refCount">0</span><span class="ref-stat-label">Приглашено</span></div>
@@ -93,9 +81,7 @@
       <section class="page hidden" id="pageWallet">
         <div class="page-title-bar"><h1>Кошелёк</h1></div>
         <div class="wallet-hero">
-          <!-- Sticker: wallet.gif (60x60) -->
-          <img id="stickerWallet" class="sticker wallet-sticker" style="width:60px;height:60px" src="/static/stickers/wallet.gif"
-               onerror="this.style.display='none'" alt="">
+          <div class="sticker-slot wallet-sticker" data-sticker="wallet" data-w="60" data-h="60" data-fallback="https://assets2.lottiefiles.com/packages/lf20_kyu7xb1v.json"></div>
           <div class="wallet-address-pill">
             <span class="wallet-address-dot"></span>
             <span id="walletAddr">Не привязан</span>
@@ -150,9 +136,7 @@
           <span class="sparkle" style="top:12px;left:22%">&#10022;</span>
           <span class="sparkle" style="top:30px;right:20%">&#10022;</span>
           <span class="sparkle" style="bottom:35px;left:38%">&#10022;</span>
-          <!-- Sticker: profile.gif (80x80) positioned top-right -->
-          <img id="stickerProfile" class="sticker profile-sticker" style="width:80px;height:80px;top:8px;right:12px" src="/static/stickers/profile.gif"
-               onerror="this.style.display='none'" alt="">
+          <div class="sticker-slot profile-sticker" data-sticker="profile" data-w="80" data-h="80" data-fallback="https://assets2.lottiefiles.com/packages/lf20_IChjnp.json"></div>
           <div class="profile-avatar-circle" id="profileAvatar">T</div>
           <div class="profile-username" id="profileUsername">@user</div>
         </div>
@@ -162,9 +146,7 @@
           <div class="fire-bg">
             <span>&#128293;</span><span>&#127793;</span><span>&#128293;</span><span>&#127793;</span><span>&#128293;</span><span>&#127793;</span>
           </div>
-          <!-- Sticker: streak.gif (50x50) -->
-          <img id="stickerStreak" class="sticker streak-sticker" style="width:50px;height:50px" src="/static/stickers/streak.gif"
-               onerror="this.style.display='none'" alt="">
+          <div class="sticker-slot streak-sticker" data-sticker="streak" data-w="50" data-h="50" data-fallback="https://assets2.lottiefiles.com/packages/lf20_UJNc2t.json"></div>
           <div class="streak-label">Серия:</div>
           <div class="streak-value" id="profileStreak">1 День</div>
         </div>
@@ -194,9 +176,7 @@
         <!-- Leaderboard (glass card) -->
         <div class="leaders-card">
           <div class="leaders-card-title">
-            <!-- Sticker: leaderboard.gif (60x60) -->
-            <img id="stickerLeaders" class="sticker" style="width:28px;height:28px" src="/static/stickers/leaderboard.gif"
-                 onerror="this.outerHTML='&#127942;'" alt="">
+            <div class="sticker-slot" data-sticker="leaderboard" data-w="28" data-h="28" data-fallback="https://assets2.lottiefiles.com/packages/lf20_touohxv0.json" style="display:inline-block;vertical-align:middle"></div>
             Лидеры
           </div>
           <div id="leadersList"></div>
