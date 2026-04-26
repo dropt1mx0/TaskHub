@@ -1,6 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════
-   TaskHub Mini App — Frontend logic
-   Modern UI + Fixed Wheel + Admin Panel
+   TaskHub Mini App — Frontend (RU, matching reference design)
    ═══════════════════════════════════════════════════════════════════ */
 
 // ─── Telegram WebApp ─────────────────────────────────────────────
@@ -103,13 +102,12 @@ function showPage(pageId) {
   haptic();
 
   switch (pageId) {
-    case "pageTasks":    loadTasks(); break;
-    case "pageWheel":    loadWheel(); break;
-    case "pageReferrals":loadReferrals(); break;
-    case "pageLeaders":  loadLeaders(); break;
-    case "pageWallet":   loadWallet(); break;
-    case "pageProfile":  loadProfile(); break;
-    case "pageAdmin":    loadAdmin(); break;
+    case "pageTasks":     loadTasks(); break;
+    case "pageWheel":     loadWheel(); break;
+    case "pageReferrals": loadReferrals(); break;
+    case "pageWallet":    loadWallet(); break;
+    case "pageProfile":   loadProfile(); break;
+    case "pageAdmin":     loadAdmin(); break;
   }
 }
 
@@ -130,11 +128,7 @@ async function init() {
     }
     userData = data;
     isAdmin = data.is_admin || false;
-    updateHeader(data);
-    updateBalance(data);
-    updateStats(data);
 
-    // Show admin tab if user is admin
     if (isAdmin) {
       const navAdmin = $("#navAdmin");
       if (navAdmin) navAdmin.classList.remove("hidden");
@@ -156,34 +150,6 @@ function hideSplash() {
   setTimeout(() => splash.remove(), 600);
 }
 
-function updateHeader(data) {
-  const initial = (data.first_name || data.username || "T")[0].toUpperCase();
-  $("#headerAvatar").textContent = initial;
-  $("#headerName").textContent = data.first_name || data.username || "TaskHub";
-  $("#headerBalance").textContent = fmt(data.balance) + " USDT";
-  const streak = data.login_streak || 0;
-  $("#headerStreak").innerHTML = "\uD83D\uDD25 " + streak + "d";
-}
-
-function updateStats(data) {
-  const streak = data.login_streak || 0;
-  const el = $("#streakVal");
-  if (el) el.textContent = streak;
-  const st = $("#statTasks");
-  if (st) st.textContent = data.tasks_completed || 0;
-  const se = $("#statEarned");
-  if (se) se.textContent = fmt(data.total_earned);
-  const sf = $("#statFriends");
-  if (sf) sf.textContent = data.referral_count || 0;
-}
-
-function updateBalance(data) {
-  $("#balanceAmount").textContent = fmt(data.balance);
-  $("#balanceHold").textContent = fmt(data.on_hold);
-  $("#balanceTotal").textContent = fmt(data.total_earned);
-  $("#balanceTasks").textContent = data.tasks_completed || 0;
-}
-
 // ─── Tasks ───────────────────────────────────────────────────────
 async function loadTasks() {
   const data = await api("/tasks");
@@ -193,19 +159,22 @@ async function loadTasks() {
     list.innerHTML = `
       <div class="empty-state">
         <lottie-player src="https://assets2.lottiefiles.com/packages/lf20_kkflmtur.json" background="transparent" speed="1" style="width:120px;height:120px" autoplay loop></lottie-player>
-        <p>No tasks available right now</p>
+        <p>Нет доступных заданий</p>
       </div>`;
     return;
   }
 
   list.innerHTML = data.tasks.map((t) => `
     <div class="task-card" onclick="openTask(${t.id})" data-task='${JSON.stringify(t).replace(/'/g, "&#39;")}'>
-      <div class="task-icon">${t.type === "channel_subscription" ? "&#128226;" : "&#128279;"}</div>
+      <div class="task-thumb">${t.type === "channel_subscription" ? "&#128226;" : "&#128279;"}</div>
       <div class="task-body">
         <div class="task-title">${esc(t.title)}</div>
-        <div class="task-desc">${t.channel_username ? "@" + esc(t.channel_username) : (esc(t.description || ""))}</div>
+        <div class="task-desc">${t.channel_username ? "Подписаться на канал @" + esc(t.channel_username) : (esc(t.description || ""))}</div>
       </div>
-      <div class="task-reward">+${fmt(t.reward)}</div>
+      <div class="task-right">
+        <div class="task-reward">+${fmt(t.reward)} &#11088;</div>
+        <button class="task-btn">${t.type === "channel_subscription" ? "Subscribe" : "Start"}</button>
+      </div>
     </div>
   `).join("");
 }
@@ -222,12 +191,12 @@ function openTask(taskId) {
     <div class="modal-sheet">
       <div class="modal-handle"></div>
       <div class="modal-title">${esc(task.title)}</div>
-      <div class="modal-desc">${esc(task.description || "Subscribe to the channel to earn reward.")}</div>
-      ${task.channel_username ? `<p style="font-size:14px;margin-bottom:12px">Channel: <a href="https://t.me/${esc(task.channel_username)}" target="_blank">@${esc(task.channel_username)}</a></p>` : ""}
+      <div class="modal-desc">${esc(task.description || "Подпишитесь на канал, чтобы получить награду.")}</div>
+      ${task.channel_username ? `<p style="font-size:14px;margin-bottom:12px">Канал: <a href="https://t.me/${esc(task.channel_username)}" target="_blank">@${esc(task.channel_username)}</a></p>` : ""}
       <div class="modal-reward">+${fmt(task.reward)} USDT</div>
       <div class="modal-actions">
-        ${task.channel_url ? `<a href="${esc(task.channel_url)}" target="_blank" class="btn btn-secondary" style="text-decoration:none">Open Channel</a>` : ""}
-        <button class="btn btn-primary" id="btnCompleteTask">Complete Task</button>
+        ${task.channel_url ? `<a href="${esc(task.channel_url)}" target="_blank" class="btn btn-secondary" style="text-decoration:none">Открыть канал</a>` : ""}
+        <button class="btn btn-primary" id="btnCompleteTask">Выполнить</button>
       </div>
     </div>
   `;
@@ -245,22 +214,19 @@ function openTask(taskId) {
     const res = await api(`/tasks/${taskId}/complete`, { method: "POST" });
     if (res.success) {
       haptic("success");
-      toast(`+${fmt(res.reward)} USDT earned!`);
+      toast(`+${fmt(res.reward)} USDT получено!`);
       if (userData) {
         userData.balance = res.balance;
         userData.on_hold = res.on_hold;
         userData.tasks_completed = (userData.tasks_completed || 0) + 1;
-        updateHeader(userData);
-        updateBalance(userData);
-        updateStats(userData);
       }
       overlay.remove();
       loadTasks();
     } else {
       haptic("error");
-      btn.textContent = res.error || "Error";
+      btn.textContent = res.error || "Ошибка";
       btn.disabled = false;
-      setTimeout(() => { btn.textContent = "Complete Task"; }, 2000);
+      setTimeout(() => { btn.textContent = "Выполнить"; }, 2000);
     }
   });
 }
@@ -294,7 +260,7 @@ function drawWheel(angle = 0) {
   ctx.fillStyle = ringGrad;
   ctx.fill();
 
-  // Dot markers on ring
+  // Dot markers
   for (let i = 0; i < n * 2; i++) {
     const dotAngle = (i / (n * 2)) * 2 * Math.PI - Math.PI / 2;
     const dotX = cx + (outerR - 4) * Math.cos(dotAngle);
@@ -305,15 +271,13 @@ function drawWheel(angle = 0) {
     ctx.fill();
   }
 
-  // Wheel slices
+  // Slices
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(angle);
 
   for (let i = 0; i < n; i++) {
     const startAngle = i * arc - Math.PI / 2;
-
-    // Slice
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.arc(0, 0, innerR, startAngle, startAngle + arc);
@@ -326,12 +290,10 @@ function drawWheel(angle = 0) {
     ctx.fillStyle = sliceGrad;
     ctx.fill();
 
-    // Slice border
     ctx.strokeStyle = "rgba(0,0,0,.2)";
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Prize text
     ctx.save();
     ctx.rotate(startAngle + arc / 2);
     ctx.fillStyle = "#fff";
@@ -347,7 +309,7 @@ function drawWheel(angle = 0) {
 
   ctx.restore();
 
-  // Center circle with gradient
+  // Center circle
   ctx.beginPath();
   ctx.arc(cx, cy, 26, 0, 2 * Math.PI);
   ctx.fillStyle = "#1a1a1c";
@@ -359,8 +321,6 @@ function drawWheel(angle = 0) {
   centerGrad.addColorStop(1, "#64B5F6");
   ctx.fillStyle = centerGrad;
   ctx.fill();
-
-  // Center text
   ctx.fillStyle = "#fff";
   ctx.font = "bold 10px -apple-system, sans-serif";
   ctx.textAlign = "center";
@@ -397,25 +357,27 @@ async function loadWheel() {
   } else {
     btnFree.classList.add("hidden");
     cooldown.classList.remove("hidden");
-    cooldownTime.textContent = `${data.cooldown_hours}h ${data.cooldown_minutes}m`;
+    cooldownTime.textContent = `${data.cooldown_hours}ч ${data.cooldown_minutes}м`;
   }
 
   $("#spinCost").textContent = data.paid_cost || 0.25;
 
-  // History
   const histEl = $("#wheelHistory");
   if (data.history && data.history.length) {
     histEl.innerHTML = data.history.map((h) => `
-      <div class="history-item">
-        <div class="history-item-left">
-          <span class="history-item-type">${h.is_free ? "Free" : "Paid"} Spin</span>
-          <span class="history-item-date">${h.time ? new Date(h.time).toLocaleString() : ""}</span>
+      <div class="tx-item">
+        <div class="tx-icon">&#9889;</div>
+        <div class="tx-body">
+          <div class="tx-title">${h.is_free ? "Бесплатный" : "Платный"} спин</div>
+          <div class="tx-date">${h.time ? new Date(h.time).toLocaleString("ru") : ""}</div>
         </div>
-        <span class="history-item-amount positive">+${fmt(h.reward)}</span>
+        <div class="tx-right">
+          <div class="tx-amount">+${fmt(h.reward)} &#11088;</div>
+        </div>
       </div>
     `).join("");
   } else {
-    histEl.innerHTML = `<p style="color:var(--text-secondary);font-size:13px;text-align:center;padding:16px">No spins yet</p>`;
+    histEl.innerHTML = `<p style="color:var(--text-sec);font-size:13px;text-align:center;padding:16px">Нет спинов</p>`;
   }
 }
 
@@ -428,8 +390,6 @@ async function spinWheel(isFree) {
   const btnPaid = $("#btnSpinPaid");
   btnFree.disabled = true;
   btnPaid.disabled = true;
-
-  // Hide previous result
   $("#wheelResult").classList.add("hidden");
 
   const duration = 4000;
@@ -446,17 +406,12 @@ async function spinWheel(isFree) {
   function animate(now) {
     const elapsed = now - startTime;
     const t = Math.min(elapsed / duration, 1);
-    const ease = 1 - Math.pow(1 - t, 4); // quartic ease-out
+    const ease = 1 - Math.pow(1 - t, 4);
     wheelAngle = startAngle + (targetAngle - startAngle) * ease;
     drawWheel(wheelAngle);
-
-    if (t < 1) {
-      requestAnimationFrame(animate);
-    } else {
-      finishSpin(resultPromise);
-    }
+    if (t < 1) requestAnimationFrame(animate);
+    else finishSpin(resultPromise);
   }
-
   requestAnimationFrame(animate);
 }
 
@@ -472,21 +427,15 @@ async function finishSpin(resultPromise) {
     rewardText.textContent = fmt(res.reward);
     resultEl.classList.remove("hidden");
     showConfetti();
-
     if (userData) {
       userData.balance = res.balance;
       userData.on_hold = res.on_hold;
-      updateHeader(userData);
-      updateBalance(userData);
-      updateStats(userData);
     }
-
     setTimeout(() => resultEl.classList.add("hidden"), 5000);
   } else {
     haptic("error");
-    toast(res.error || "Spin failed");
+    toast(res.error || "Ошибка спина");
   }
-
   setTimeout(loadWheel, 600);
 }
 
@@ -514,13 +463,13 @@ async function loadReferrals() {
       <div class="ref-item">
         <div>
           <span class="ref-item-name">${esc(r.username)} ${r.is_premium ? "&#11088;" : ""}</span>
-          <span class="ref-item-tasks">${r.tasks_completed} tasks</span>
+          <span class="ref-item-tasks">${r.tasks_completed} заданий</span>
         </div>
         <span class="ref-item-earnings">+${fmt(r.passive_earnings)}</span>
       </div>
     `).join("");
   } else {
-    list.innerHTML = `<p style="color:var(--text-secondary);font-size:13px;text-align:center;padding:16px">No referrals yet. Share your link!</p>`;
+    list.innerHTML = `<p style="color:var(--text-sec);font-size:13px;text-align:center;padding:16px">Нет рефералов. Поделитесь ссылкой!</p>`;
   }
 }
 
@@ -530,74 +479,78 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!input.value) return;
     navigator.clipboard.writeText(input.value).then(() => {
       haptic("success");
-      toast("Link copied!");
+      toast("Ссылка скопирована!");
     }).catch(() => {
       input.select();
       document.execCommand("copy");
-      toast("Link copied!");
+      toast("Ссылка скопирована!");
     });
   });
 });
-
-// ─── Leaderboard ─────────────────────────────────────────────────
-async function loadLeaders() {
-  const data = await api("/leaderboard");
-  if (data.error) return;
-
-  const list = $("#leadersList");
-  if (!data.leaders || data.leaders.length === 0) {
-    list.innerHTML = `<p style="color:var(--text-secondary);font-size:13px;text-align:center;padding:24px">No leaders yet</p>`;
-    return;
-  }
-
-  list.innerHTML = data.leaders.map((l, i) => {
-    const rank = i + 1;
-    const rankClass = rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
-    const medal = rank === 1 ? "&#129351;" : rank === 2 ? "&#129352;" : rank === 3 ? "&#129353;" : rank;
-    const isMe = data.my_id === l.user_id;
-    return `
-      <div class="leader-item ${isMe ? "is-me" : ""}">
-        <div class="leader-rank ${rankClass}">${medal}</div>
-        <span class="leader-name">${esc(l.name)} ${isMe ? "(you)" : ""}</span>
-        <span class="leader-earned">${fmt(l.total_earned)} USDT</span>
-      </div>
-    `;
-  }).join("");
-}
 
 // ─── Wallet ──────────────────────────────────────────────────────
 let withdrawType = "usdt";
 
 async function loadWallet() {
   if (userData) {
-    $("#walletBalance").textContent = fmt(userData.balance) + " USDT";
+    const bal = userData.balance || 0;
+    $("#walletBalanceBig").innerHTML = fmt(bal) + '<span class="wallet-balance-star">&#11088;</span>';
+    $("#walletBalanceSub").innerHTML = `&asymp; ${fmt(bal * 0.018)} &#9410;`;
+    if (userData.wallet_address) {
+      const addr = userData.wallet_address;
+      $("#walletAddr").textContent = addr.slice(0, 4) + "..." + addr.slice(-4);
+    }
   }
   $("#minWithdraw").textContent = "1.0";
 
+  // Load transaction history
   const data = await api("/history");
   if (data.error) return;
 
-  const list = $("#historyList");
+  const list = $("#txList");
   if (!data.withdrawals || data.withdrawals.length === 0) {
-    list.innerHTML = `<p style="color:var(--text-secondary);font-size:13px;text-align:center;padding:16px">No withdrawals yet</p>`;
+    list.innerHTML = `<p style="color:var(--text-sec);font-size:13px;text-align:center;padding:16px">Нет транзакций</p>`;
     return;
   }
 
   list.innerHTML = data.withdrawals.map((w) => `
-    <div class="history-item">
-      <div class="history-item-left">
-        <span class="history-item-type">${w.type.toUpperCase()} Withdrawal</span>
-        <span class="history-item-date">${w.requested_at ? new Date(w.requested_at).toLocaleDateString() : ""}</span>
+    <div class="tx-item">
+      <div class="tx-icon ${w.status === 'completed' ? '' : 'withdraw'}">&#9654;</div>
+      <div class="tx-body">
+        <div class="tx-title">${w.type.toUpperCase()} Вывод</div>
+        <div class="tx-date">${w.requested_at ? timeAgo(w.requested_at) : ""}</div>
       </div>
-      <div style="text-align:right">
-        <span class="history-item-amount negative">-${fmt(w.amount)}</span>
-        <span class="status-badge ${w.status}">${w.status}</span>
+      <div class="tx-right">
+        <div class="tx-amount negative">-${fmt(w.amount)} &#11088;</div>
+        <div class="tx-sub"><span class="status-badge ${w.status}">${statusRu(w.status)}</span></div>
       </div>
     </div>
   `).join("");
 }
 
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return "Сегодня";
+  if (days === 1) return "Вчера";
+  return days + "д назад";
+}
+
+function statusRu(s) {
+  if (s === "pending") return "ожидание";
+  if (s === "completed") return "готово";
+  if (s === "failed" || s === "rejected") return "отклонено";
+  return s;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  // Toggle withdraw form
+  $("#btnShowWithdraw")?.addEventListener("click", () => {
+    const form = $("#withdrawFormCard");
+    form.classList.toggle("hidden");
+    haptic();
+  });
+
   $("#togUsdt")?.addEventListener("click", () => {
     withdrawType = "usdt";
     $("#togUsdt").classList.add("active");
@@ -620,14 +573,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!amount || amount < 1) {
       haptic("error");
       resultEl.className = "withdraw-result error";
-      resultEl.textContent = "Minimum withdrawal is 1.0 USDT";
+      resultEl.textContent = "Минимальная сумма вывода: 1.0 USDT";
       resultEl.classList.remove("hidden");
       return;
     }
     if (!wallet) {
       haptic("error");
       resultEl.className = "withdraw-result error";
-      resultEl.textContent = "Enter wallet address";
+      resultEl.textContent = "Введите адрес кошелька";
       resultEl.classList.remove("hidden");
       return;
     }
@@ -643,12 +596,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (res.success) {
       haptic("success");
       resultEl.className = "withdraw-result success";
-      resultEl.textContent = `Withdrawal #${res.withdrawal_id} submitted! New balance: ${fmt(res.balance)} USDT`;
+      resultEl.textContent = `Вывод #${res.withdrawal_id} отправлен! Баланс: ${fmt(res.balance)} USDT`;
       resultEl.classList.remove("hidden");
       if (userData) {
         userData.balance = res.balance;
-        updateHeader(userData);
-        updateBalance(userData);
+        userData.wallet_address = wallet;
       }
       $("#withdrawAmount").value = "";
       $("#withdrawWallet").value = "";
@@ -656,28 +608,79 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       haptic("error");
       resultEl.className = "withdraw-result error";
-      resultEl.textContent = res.error || "Withdrawal failed";
+      resultEl.textContent = res.error || "Ошибка вывода";
       resultEl.classList.remove("hidden");
     }
 
     btn.disabled = false;
-    btn.textContent = "Request Withdrawal";
+    btn.textContent = "Запросить вывод";
   });
 });
 
-// ─── Profile ─────────────────────────────────────────────────────
-function loadProfile() {
+// ─── Profile (includes leaderboard) ──────────────────────────────
+async function loadProfile() {
   if (!userData) return;
+
+  // Avatar
   const initial = (userData.first_name || userData.username || "T")[0].toUpperCase();
-  $("#profileAvatar").textContent = initial;
-  $("#profileName").textContent = userData.first_name || userData.username || "User";
-  $("#profileId").textContent = `ID: ${userData.user_id}`;
-  $("#pBalance").textContent = fmt(userData.balance);
-  $("#pOnHold").textContent = fmt(userData.on_hold);
-  $("#pEarned").textContent = fmt(userData.total_earned);
-  $("#pTasks").textContent = userData.tasks_completed || 0;
-  $("#pStreak").textContent = userData.login_streak || 0;
-  $("#pRefs").textContent = userData.referral_count || 0;
+  const avatarEl = $("#profileAvatar");
+  if (tg?.initDataUnsafe?.user?.photo_url) {
+    avatarEl.innerHTML = `<img src="${tg.initDataUnsafe.user.photo_url}" alt="">`;
+  } else {
+    avatarEl.textContent = initial;
+  }
+
+  // Username
+  const username = userData.username ? "@" + userData.username : (userData.first_name || "User");
+  $("#profileUsername").textContent = username;
+
+  // Streak
+  const streak = userData.login_streak || 0;
+  const streakText = streak + " " + pluralDays(streak);
+  $("#profileStreak").textContent = streakText;
+
+  // Stats
+  const earned = userData.total_earned || 0;
+  $("#profileEarned").innerHTML = fmt(earned) + ' <span style="font-size:16px">&#11088;</span>';
+  $("#profileEarnedSub").innerHTML = `&asymp; $${fmt(earned * 0.018)} &#9410;`;
+  $("#profileTasks").textContent = userData.tasks_completed || 0;
+  $("#profileFriends").textContent = userData.referral_count || 0;
+
+  // Load leaderboard
+  const data = await api("/leaderboard");
+  const list = $("#leadersList");
+  if (!data.leaders || data.leaders.length === 0) {
+    list.innerHTML = `<p style="color:#999;text-align:center;padding:12px;font-size:13px">Пока нет лидеров</p>`;
+    return;
+  }
+
+  list.innerHTML = data.leaders.slice(0, 5).map((l, i) => {
+    const rank = i + 1;
+    const initials = (l.name || "?").slice(0, 2).toUpperCase();
+    const isMe = data.my_id === l.user_id;
+    return `
+      <div class="leader-row" ${isMe ? 'style="background:rgba(33,150,243,.1)"' : ""}>
+        <div class="leader-rank-num">${rank}</div>
+        <div class="leader-avatar-sm">${initials}</div>
+        <div class="leader-info">
+          <div class="leader-name">@${esc(l.name)} &#11088;</div>
+        </div>
+        <div class="leader-earned-col">
+          <div class="leader-earned-stars">${fmt(l.total_earned)} &#11088;</div>
+          <div class="leader-earned-ton">&asymp; $${fmt(l.total_earned * 0.018)} &#9410;</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function pluralDays(n) {
+  const abs = Math.abs(n) % 100;
+  const last = abs % 10;
+  if (abs > 10 && abs < 20) return "Дней";
+  if (last > 1 && last < 5) return "Дня";
+  if (last === 1) return "День";
+  return "Дней";
 }
 
 // ═════════════════════════════════════════════════════════════════
@@ -687,7 +690,6 @@ function loadProfile() {
 async function loadAdmin() {
   if (!isAdmin) return;
 
-  // Load stats
   const stats = await api("/admin/stats");
   if (!stats.error) {
     $("#adminTotalUsers").textContent = stats.total_users || 0;
@@ -696,7 +698,6 @@ async function loadAdmin() {
     $("#adminPendingW").textContent = stats.pending_withdrawals || 0;
   }
 
-  // Show main menu, hide sub-pages
   $("#adminMainMenu").classList.remove("hidden");
   $("#adminSubPage").classList.add("hidden");
 }
@@ -714,7 +715,6 @@ function adminBack() {
   loadAdmin();
 }
 
-// ─── Admin: Tasks ────────────────────────────────────────────────
 async function adminShowTasks() {
   haptic();
   adminShowSubPage('<div style="text-align:center;padding:20px"><span class="loading-spinner"></span></div>');
@@ -726,12 +726,12 @@ async function adminShowTasks() {
   }
 
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <h3 style="font-size:16px;font-weight:700">All Tasks</h3>
-    <button class="btn btn-sm btn-secondary" onclick="adminBack()">Back</button>
+    <h3 style="font-size:16px;font-weight:700">Все задания</h3>
+    <button class="btn btn-sm btn-secondary" onclick="adminBack()">Назад</button>
   </div>`;
 
   if (!data.tasks || data.tasks.length === 0) {
-    html += `<p style="color:var(--text-secondary);text-align:center;padding:20px">No tasks</p>`;
+    html += `<p style="color:var(--text-sec);text-align:center;padding:20px">Нет заданий</p>`;
   } else {
     data.tasks.forEach((t) => {
       html += `
@@ -739,43 +739,33 @@ async function adminShowTasks() {
           <div class="admin-task-status">${t.is_active ? "&#9989;" : "&#10060;"}</div>
           <div class="admin-task-body">
             <div class="admin-task-title">#${t.id} ${esc(t.title)}</div>
-            <div class="admin-task-meta">${fmt(t.reward)} USDT | ${t.total_completions} done</div>
+            <div class="admin-task-meta">${fmt(t.reward)} USDT | ${t.total_completions} выполнено</div>
           </div>
           <div class="admin-task-actions">
-            <button class="btn btn-sm ${t.is_active ? "btn-secondary" : "btn-success"}" onclick="adminToggleTask(${t.id})">${t.is_active ? "Off" : "On"}</button>
-            <button class="btn btn-sm btn-danger" onclick="adminDeleteTask(${t.id})">Del</button>
+            <button class="btn btn-sm ${t.is_active ? "btn-secondary" : "btn-success"}" onclick="adminToggleTask(${t.id})">${t.is_active ? "Выкл" : "Вкл"}</button>
+            <button class="btn btn-sm btn-danger" onclick="adminDeleteTask(${t.id})">Удал</button>
           </div>
         </div>`;
     });
   }
-
   adminShowSubPage(html);
 }
 
 async function adminToggleTask(taskId) {
   haptic();
   const res = await api(`/admin/tasks/${taskId}/toggle`, { method: "POST" });
-  if (res.success) {
-    toast("Task updated");
-    adminShowTasks();
-  } else {
-    toast(res.error || "Error");
-  }
+  if (res.success) { toast("Задание обновлено"); adminShowTasks(); }
+  else toast(res.error || "Ошибка");
 }
 
 async function adminDeleteTask(taskId) {
-  if (!confirm("Delete this task?")) return;
+  if (!confirm("Удалить задание?")) return;
   haptic();
   const res = await api(`/admin/tasks/${taskId}`, { method: "DELETE" });
-  if (res.success) {
-    toast("Task deleted");
-    adminShowTasks();
-  } else {
-    toast(res.error || "Error");
-  }
+  if (res.success) { toast("Задание удалено"); adminShowTasks(); }
+  else toast(res.error || "Ошибка");
 }
 
-// ─── Admin: Withdrawals ──────────────────────────────────────────
 async function adminShowWithdrawals() {
   haptic();
   adminShowSubPage('<div style="text-align:center;padding:20px"><span class="loading-spinner"></span></div>');
@@ -787,12 +777,12 @@ async function adminShowWithdrawals() {
   }
 
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <h3 style="font-size:16px;font-weight:700">Pending Withdrawals</h3>
-    <button class="btn btn-sm btn-secondary" onclick="adminBack()">Back</button>
+    <h3 style="font-size:16px;font-weight:700">Ожидающие вывода</h3>
+    <button class="btn btn-sm btn-secondary" onclick="adminBack()">Назад</button>
   </div>`;
 
   if (!data.withdrawals || data.withdrawals.length === 0) {
-    html += `<p style="color:var(--text-secondary);text-align:center;padding:20px">No pending withdrawals</p>`;
+    html += `<p style="color:var(--text-sec);text-align:center;padding:20px">Нет ожидающих выводов</p>`;
   } else {
     data.withdrawals.forEach((w) => {
       html += `
@@ -802,54 +792,43 @@ async function adminShowWithdrawals() {
             <span class="admin-withdrawal-amount">${fmt(w.amount)} ${(w.type || "usdt").toUpperCase()}</span>
           </div>
           <div class="admin-withdrawal-wallet">${esc(w.wallet)}</div>
-          <div class="admin-withdrawal-details">${w.requested_at ? new Date(w.requested_at).toLocaleString() : ""}</div>
           <div class="admin-withdrawal-actions">
-            <button class="btn btn-sm btn-success" onclick="adminApproveW(${w.id})">Approve</button>
-            <button class="btn btn-sm btn-danger" onclick="adminRejectW(${w.id})">Reject</button>
+            <button class="btn btn-sm btn-success" onclick="adminApproveW(${w.id})">Одобрить</button>
+            <button class="btn btn-sm btn-danger" onclick="adminRejectW(${w.id})">Отклонить</button>
           </div>
         </div>`;
     });
   }
-
   adminShowSubPage(html);
 }
 
 async function adminApproveW(id) {
   haptic();
   const res = await api(`/admin/withdrawals/${id}/approve`, { method: "POST" });
-  if (res.success) {
-    toast("Approved");
-    adminShowWithdrawals();
-  } else {
-    toast(res.error || "Error");
-  }
+  if (res.success) { toast("Одобрено"); adminShowWithdrawals(); }
+  else toast(res.error || "Ошибка");
 }
 
 async function adminRejectW(id) {
   haptic();
   const res = await api(`/admin/withdrawals/${id}/reject`, { method: "POST" });
-  if (res.success) {
-    toast("Rejected");
-    adminShowWithdrawals();
-  } else {
-    toast(res.error || "Error");
-  }
+  if (res.success) { toast("Отклонено"); adminShowWithdrawals(); }
+  else toast(res.error || "Ошибка");
 }
 
-// ─── Admin: Broadcast ────────────────────────────────────────────
 function adminShowBroadcast() {
   haptic();
   const html = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <h3 style="font-size:16px;font-weight:700">Broadcast</h3>
-      <button class="btn btn-sm btn-secondary" onclick="adminBack()">Back</button>
+      <h3 style="font-size:16px;font-weight:700">Рассылка</h3>
+      <button class="btn btn-sm btn-secondary" onclick="adminBack()">Назад</button>
     </div>
     <div class="admin-form">
       <div class="form-group">
-        <label>Message (HTML supported)</label>
-        <textarea class="admin-broadcast-textarea" id="broadcastText" placeholder="Enter message for all users..."></textarea>
+        <label>Сообщение (HTML)</label>
+        <textarea class="admin-broadcast-textarea" id="broadcastText" placeholder="Введите сообщение для всех пользователей..."></textarea>
       </div>
-      <button class="btn btn-primary btn-block" id="btnBroadcast" onclick="adminSendBroadcast()">Send Broadcast</button>
+      <button class="btn btn-primary btn-block" id="btnBroadcast" onclick="adminSendBroadcast()">Отправить рассылку</button>
       <div id="broadcastResult" class="hidden" style="margin-top:12px;padding:12px;border-radius:10px;text-align:center;font-size:14px"></div>
     </div>
   `;
@@ -858,13 +837,13 @@ function adminShowBroadcast() {
 
 async function adminSendBroadcast() {
   const text = $("#broadcastText")?.value?.trim();
-  if (!text) { toast("Enter a message"); return; }
-  if (!confirm("Send this message to ALL users?")) return;
+  if (!text) { toast("Введите сообщение"); return; }
+  if (!confirm("Отправить сообщение ВСЕМ пользователям?")) return;
 
   haptic();
   const btn = $("#btnBroadcast");
   btn.disabled = true;
-  btn.innerHTML = '<span class="loading-spinner"></span> Sending...';
+  btn.innerHTML = '<span class="loading-spinner"></span> Отправка...';
 
   const res = await api("/admin/broadcast", {
     method: "POST",
@@ -876,44 +855,43 @@ async function adminSendBroadcast() {
   if (res.success) {
     resultEl.style.background = "rgba(76,175,80,.1)";
     resultEl.style.color = "var(--green-light)";
-    resultEl.textContent = `Sent: ${res.success_count} | Failed: ${res.failed_count}`;
+    resultEl.textContent = `Отправлено: ${res.success_count} | Ошибок: ${res.failed_count}`;
     haptic("success");
   } else {
     resultEl.style.background = "rgba(255,107,107,.1)";
     resultEl.style.color = "var(--red)";
-    resultEl.textContent = res.error || "Broadcast failed";
+    resultEl.textContent = res.error || "Ошибка рассылки";
   }
 
   btn.disabled = false;
-  btn.textContent = "Send Broadcast";
+  btn.textContent = "Отправить рассылку";
 }
 
-// ─── Admin: Create Task ──────────────────────────────────────────
 function adminShowCreateTask() {
   haptic();
   const html = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <h3 style="font-size:16px;font-weight:700">Create Task</h3>
-      <button class="btn btn-sm btn-secondary" onclick="adminBack()">Back</button>
+      <h3 style="font-size:16px;font-weight:700">Создать задание</h3>
+      <button class="btn btn-sm btn-secondary" onclick="adminBack()">Назад</button>
     </div>
     <div class="admin-form">
       <div class="form-group">
-        <label>Title</label>
-        <input type="text" class="form-input" id="newTaskTitle" placeholder="Subscribe to channel">
+        <label>Название</label>
+        <input type="text" class="form-input" id="newTaskTitle" placeholder="Подписка на канал">
       </div>
       <div class="form-group">
-        <label>Description</label>
-        <input type="text" class="form-input" id="newTaskDesc" placeholder="Description...">
+        <label>Описание</label>
+        <input type="text" class="form-input" id="newTaskDesc" placeholder="Описание задания...">
       </div>
       <div class="form-group">
-        <label>Reward (USDT)</label>
+        <label>Награда (USDT)</label>
         <input type="number" class="form-input" id="newTaskReward" placeholder="0.01" step="0.001" min="0.001">
       </div>
       <div class="form-group">
-        <label>Channel Username (without @)</label>
+        <label>Username канала (без @)</label>
         <input type="text" class="form-input" id="newTaskChannel" placeholder="channel_name">
       </div>
-      <button class="btn btn-primary btn-block" onclick="adminCreateTask()">Create Task</button>
+      <button class="btn btn-primary btn-block" onclick="adminCreateTask()">Создать</button>
     </div>
   `;
   adminShowSubPage(html);
@@ -925,9 +903,9 @@ async function adminCreateTask() {
   const reward = parseFloat($("#newTaskReward")?.value);
   const channel = $("#newTaskChannel")?.value?.trim();
 
-  if (!title) { toast("Enter title"); return; }
-  if (!reward || reward < 0.001) { toast("Enter valid reward"); return; }
-  if (!channel) { toast("Enter channel username"); return; }
+  if (!title) { toast("Введите название"); return; }
+  if (!reward || reward < 0.001) { toast("Введите награду"); return; }
+  if (!channel) { toast("Введите username канала"); return; }
 
   haptic();
   const res = await api("/admin/tasks", {
@@ -942,11 +920,11 @@ async function adminCreateTask() {
 
   if (res.success) {
     haptic("success");
-    toast("Task created!");
+    toast("Задание создано!");
     adminShowTasks();
   } else {
     haptic("error");
-    toast(res.error || "Error creating task");
+    toast(res.error || "Ошибка создания");
   }
 }
 
