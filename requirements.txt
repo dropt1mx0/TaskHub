@@ -1,0 +1,10 @@
+# requirements.txt
+aiogram[redis]==3.26.0
+aiosqlite==0.20.0
+aiohttp==3.11.11
+python-dotenv==1.0.1
+loguru==0.7.2
+sqlalchemy==2.0.48
+greenlet==3.3.2
+asyncpg==0.30.0
+pydantic-settings==2.3.4

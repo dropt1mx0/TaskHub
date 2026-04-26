@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TaskHub</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@2.0.8/dist/lottie-player.js"></script>
+</head>
+<body>
+  <!-- ─── Loading splash ─── -->
+  <div id="splash" class="splash">
+    <lottie-player
+      src="https://assets2.lottiefiles.com/packages/lf20_z4cshyhf.json"
+      background="transparent"
+      speed="1"
+      style="width:120px;height:120px"
+      loop autoplay>
+    </lottie-player>
+    <p class="splash-text">Loading TaskHub...</p>
+  </div>
+
+  <!-- ─── App shell ─── -->
+  <div id="app" class="app hidden">
+
+    <!-- Header -->
+    <header class="header" id="header">
+      <div class="header-left">
+        <span class="header-avatar" id="headerAvatar">T</span>
+        <div class="header-info">
+          <span class="header-name" id="headerName">TaskHub</span>
+          <span class="header-balance" id="headerBalance">0.000 USDT</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="header-streak" id="headerStreak" title="Login streak">0d</span>
+      </div>
+    </header>
+
+    <!-- Balance card -->
+    <section class="balance-card" id="balanceCard">
+      <div class="balance-main">
+        <span class="balance-label">Available Balance</span>
+        <span class="balance-amount" id="balanceAmount">0.000</span>
+        <span class="balance-currency">USDT</span>
+      </div>
+      <div class="balance-row">
+        <div class="balance-col">
+          <span class="balance-sub-label">On Hold</span>
+          <span class="balance-sub-val" id="balanceHold">0.000</span>
+        </div>
+        <div class="balance-col">
+          <span class="balance-sub-label">Total Earned</span>
+          <span class="balance-sub-val" id="balanceTotal">0.000</span>
+        </div>
+        <div class="balance-col">
+          <span class="balance-sub-label">Tasks Done</span>
+          <span class="balance-sub-val" id="balanceTasks">0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab pages -->
+    <main class="pages">
+
+      <!-- ─── Tasks Page ─── -->
+      <section class="page" id="pageTasks">
+        <h2 class="section-title">Available Tasks</h2>
+        <div id="tasksList" class="tasks-list">
+          <div class="empty-state">
+            <lottie-player
+              src="https://assets3.lottiefiles.com/packages/lf20_WpDG3calyJ.json"
+              background="transparent" speed="1"
+              style="width:100px;height:100px" loop autoplay>
+            </lottie-player>
+            <p>No tasks available right now</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── Wheel Page ─── -->
+      <section class="page hidden" id="pageWheel">
+        <h2 class="section-title">Fortune Wheel</h2>
+        <div class="wheel-container">
+          <div class="wheel-wrapper">
+            <div class="wheel-pointer"></div>
+            <canvas id="wheelCanvas" width="280" height="280"></canvas>
+          </div>
+          <div class="wheel-actions">
+            <button class="btn btn-primary btn-spin" id="btnSpinFree">Free Spin</button>
+            <button class="btn btn-secondary btn-spin" id="btnSpinPaid">Paid Spin (<span id="spinCost">0.25</span> USDT)</button>
+          </div>
+          <div class="wheel-cooldown hidden" id="wheelCooldown">
+            Next free spin in <span id="cooldownTime">--:--</span>
+          </div>
+          <div class="wheel-result hidden" id="wheelResult">
+            <lottie-player
+              id="winAnimation"
+              src="https://assets5.lottiefiles.com/packages/lf20_aKAfIn.json"
+              background="transparent" speed="1"
+              style="width:80px;height:80px">
+            </lottie-player>
+            <span class="wheel-result-text">You won <b id="wheelRewardText">0</b> USDT!</span>
+          </div>
+          <h3 class="sub-title">Recent Spins</h3>
+          <div id="wheelHistory" class="history-list"></div>
+        </div>
+      </section>
+
+      <!-- ─── Referrals Page ─── -->
+      <section class="page hidden" id="pageReferrals">
+        <h2 class="section-title">Referrals</h2>
+        <div class="referral-card">
+          <lottie-player
+            src="https://assets10.lottiefiles.com/packages/lf20_v1yudlrx.json"
+            background="transparent" speed="1"
+            style="width:100px;height:100px" loop autoplay>
+          </lottie-player>
+          <p class="referral-desc">Invite friends and earn bonuses!</p>
+          <div class="referral-stats">
+            <div class="ref-stat"><span class="ref-stat-val" id="refCount">0</span><span class="ref-stat-label">Invited</span></div>
+            <div class="ref-stat"><span class="ref-stat-val" id="refDirect">0</span><span class="ref-stat-label">Direct</span></div>
+            <div class="ref-stat"><span class="ref-stat-val" id="refPassive">0</span><span class="ref-stat-label">Passive</span></div>
+          </div>
+          <div class="referral-link-box">
+            <input type="text" class="referral-link-input" id="refLinkInput" readonly>
+            <button class="btn btn-primary btn-copy" id="btnCopyRef">Copy</button>
+          </div>
+        </div>
+        <h3 class="sub-title">Your Referrals</h3>
+        <div id="refList" class="ref-list"></div>
+      </section>
+
+      <!-- ─── Leaderboard Page ─── -->
+      <section class="page hidden" id="pageLeaders">
+        <h2 class="section-title">Leaderboard</h2>
+        <lottie-player
+          src="https://assets1.lottiefiles.com/packages/lf20_bhebjzpu.json"
+          background="transparent" speed="1"
+          style="width:80px;height:80px;margin:0 auto" loop autoplay>
+        </lottie-player>
+        <div id="leadersList" class="leaders-list"></div>
+      </section>
+
+      <!-- ─── Wallet Page ─── -->
+      <section class="page hidden" id="pageWallet">
+        <h2 class="section-title">Withdraw</h2>
+        <div class="wallet-card">
+          <div class="wallet-balance">
+            <span class="wallet-balance-label">Available</span>
+            <span class="wallet-balance-val" id="walletBalance">0.000 USDT</span>
+          </div>
+          <div class="withdraw-form">
+            <div class="form-group">
+              <label>Currency</label>
+              <div class="toggle-group">
+                <button class="toggle-btn active" data-type="usdt" id="togUsdt">USDT</button>
+                <button class="toggle-btn" data-type="ton" id="togTon">TON</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Amount (min <span id="minWithdraw">1.0</span>)</label>
+              <input type="number" id="withdrawAmount" class="form-input" placeholder="1.0" step="0.001" min="0.001">
+            </div>
+            <div class="form-group">
+              <label>Wallet Address</label>
+              <input type="text" id="withdrawWallet" class="form-input" placeholder="UQ... or EQ...">
+            </div>
+            <button class="btn btn-primary btn-block" id="btnWithdraw">Request Withdrawal</button>
+          </div>
+          <div class="withdraw-result hidden" id="withdrawResult"></div>
+        </div>
+        <h3 class="sub-title">Withdrawal History</h3>
+        <div id="historyList" class="history-list"></div>
+      </section>
+
+      <!-- ─── Profile Page ─── -->
+      <section class="page hidden" id="pageProfile">
+        <h2 class="section-title">Profile</h2>
+        <div class="profile-card">
+          <div class="profile-avatar" id="profileAvatar">T</div>
+          <div class="profile-name" id="profileName">User</div>
+          <div class="profile-id" id="profileId">ID: --</div>
+          <div class="profile-stats-grid">
+            <div class="p-stat"><span class="p-stat-val" id="pBalance">0</span><span class="p-stat-label">Balance</span></div>
+            <div class="p-stat"><span class="p-stat-val" id="pOnHold">0</span><span class="p-stat-label">On Hold</span></div>
+            <div class="p-stat"><span class="p-stat-val" id="pEarned">0</span><span class="p-stat-label">Earned</span></div>
+            <div class="p-stat"><span class="p-stat-val" id="pTasks">0</span><span class="p-stat-label">Tasks</span></div>
+            <div class="p-stat"><span class="p-stat-val" id="pStreak">0</span><span class="p-stat-label">Streak</span></div>
+            <div class="p-stat"><span class="p-stat-val" id="pRefs">0</span><span class="p-stat-label">Referrals</span></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom navigation -->
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="nav-btn active" data-page="pageTasks">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        <span>Tasks</span>
+      </button>
+      <button class="nav-btn" data-page="pageWheel">
+        <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l7 7"/></svg>
+        <span>Wheel</span>
+      </button>
+      <button class="nav-btn" data-page="pageReferrals">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <span>Referrals</span>
+      </button>
+      <button class="nav-btn" data-page="pageLeaders">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <span>Leaders</span>
+      </button>
+      <button class="nav-btn" data-page="pageWallet">
+        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><path d="M1 10h22"/></svg>
+        <span>Wallet</span>
+      </button>
+      <button class="nav-btn" data-page="pageProfile">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profile</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
