@@ -6,18 +6,18 @@
   <title>TaskHub</title>
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://unpkg.com/@lottiefiles/lottie-player@2.0.8/dist/lottie-player.js"></script>
 </head>
 <body>
   <!-- ─── Loading splash ─── -->
   <div id="splash" class="splash">
-    <lottie-player
-      src="https://assets2.lottiefiles.com/packages/lf20_z4cshyhf.json"
-      background="transparent"
-      speed="1"
-      style="width:120px;height:120px"
-      loop autoplay>
-    </lottie-player>
+    <div class="splash-sticker">
+      <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="60" cy="60" r="56" fill="url(#g1)" opacity=".15"/>
+        <circle cx="60" cy="60" r="36" fill="url(#g1)" opacity=".3"/>
+        <circle cx="60" cy="60" r="16" fill="url(#g1)"/>
+        <defs><linearGradient id="g1" x1="0" y1="0" x2="120" y2="120"><stop stop-color="#6c5ce7"/><stop offset="1" stop-color="#a29bfe"/></linearGradient></defs>
+      </svg>
+    </div>
     <p class="splash-text">Loading TaskHub...</p>
   </div>
 
@@ -69,11 +69,16 @@
         <h2 class="section-title">Available Tasks</h2>
         <div id="tasksList" class="tasks-list">
           <div class="empty-state">
-            <lottie-player
-              src="https://assets3.lottiefiles.com/packages/lf20_WpDG3calyJ.json"
-              background="transparent" speed="1"
-              style="width:100px;height:100px" loop autoplay>
-            </lottie-player>
+            <div class="empty-sticker">
+              <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="20" y="10" width="60" height="75" rx="8" stroke="#636366" stroke-width="2" fill="none"/>
+                <line x1="35" y1="32" x2="65" y2="32" stroke="#636366" stroke-width="2" stroke-linecap="round"/>
+                <line x1="35" y1="44" x2="58" y2="44" stroke="#636366" stroke-width="2" stroke-linecap="round"/>
+                <line x1="35" y1="56" x2="52" y2="56" stroke="#636366" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="72" cy="68" r="18" fill="#6c5ce7" opacity=".2"/>
+                <path d="M66 68l4 4 8-8" stroke="#6c5ce7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
             <p>No tasks available right now</p>
           </div>
         </div>
@@ -85,7 +90,7 @@
         <div class="wheel-container">
           <div class="wheel-wrapper">
             <div class="wheel-pointer"></div>
-            <canvas id="wheelCanvas" width="280" height="280"></canvas>
+            <canvas id="wheelCanvas" width="300" height="300"></canvas>
           </div>
           <div class="wheel-actions">
             <button class="btn btn-primary btn-spin" id="btnSpinFree">Free Spin</button>
@@ -95,12 +100,7 @@
             Next free spin in <span id="cooldownTime">--:--</span>
           </div>
           <div class="wheel-result hidden" id="wheelResult">
-            <lottie-player
-              id="winAnimation"
-              src="https://assets5.lottiefiles.com/packages/lf20_aKAfIn.json"
-              background="transparent" speed="1"
-              style="width:80px;height:80px">
-            </lottie-player>
+            <span style="font-size:24px">&#127881;</span>
             <span class="wheel-result-text">You won <b id="wheelRewardText">0</b> USDT!</span>
           </div>
           <h3 class="sub-title">Recent Spins</h3>
@@ -112,11 +112,16 @@
       <section class="page hidden" id="pageReferrals">
         <h2 class="section-title">Referrals</h2>
         <div class="referral-card">
-          <lottie-player
-            src="https://assets10.lottiefiles.com/packages/lf20_v1yudlrx.json"
-            background="transparent" speed="1"
-            style="width:100px;height:100px" loop autoplay>
-          </lottie-player>
+          <div class="referral-sticker">
+            <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="30" cy="28" r="12" fill="#6c5ce7" opacity=".3"/>
+              <circle cx="30" cy="28" r="8" fill="#6c5ce7" opacity=".6"/>
+              <circle cx="54" cy="28" r="10" fill="#a29bfe" opacity=".3"/>
+              <circle cx="54" cy="28" r="6" fill="#a29bfe" opacity=".6"/>
+              <path d="M10 62c0-10 8-16 20-16s20 6 20 16" stroke="#6c5ce7" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <path d="M38 58c0-8 6-13 16-13s16 5 16 13" stroke="#a29bfe" stroke-width="2" fill="none" stroke-linecap="round"/>
+            </svg>
+          </div>
           <p class="referral-desc">Invite friends and earn bonuses!</p>
           <div class="referral-stats">
             <div class="ref-stat"><span class="ref-stat-val" id="refCount">0</span><span class="ref-stat-label">Invited</span></div>
@@ -135,11 +140,6 @@
       <!-- ─── Leaderboard Page ─── -->
       <section class="page hidden" id="pageLeaders">
         <h2 class="section-title">Leaderboard</h2>
-        <lottie-player
-          src="https://assets1.lottiefiles.com/packages/lf20_bhebjzpu.json"
-          background="transparent" speed="1"
-          style="width:80px;height:80px;margin:0 auto" loop autoplay>
-        </lottie-player>
         <div id="leadersList" class="leaders-list"></div>
       </section>
 
@@ -193,6 +193,72 @@
         </div>
       </section>
 
+      <!-- ─── Admin Page (hidden by default, shown for admins) ─── -->
+      <section class="page hidden" id="pageAdmin">
+        <h2 class="section-title">Admin Panel</h2>
+
+        <!-- Stats grid -->
+        <div class="admin-grid" id="adminStats">
+          <div class="admin-stat-card">
+            <div class="admin-stat-val" id="adminTotalUsers">--</div>
+            <div class="admin-stat-label">Users</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-val" id="adminNewUsers">--</div>
+            <div class="admin-stat-label">New (24h)</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-val" id="adminBankBalance">--</div>
+            <div class="admin-stat-label">Bank USDT</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-val" id="adminPendingW">--</div>
+            <div class="admin-stat-label">Pending W.</div>
+          </div>
+        </div>
+
+        <!-- Admin actions -->
+        <div class="admin-section" id="adminMainMenu">
+          <div class="admin-action-list">
+            <button class="admin-action-btn" onclick="adminShowTasks()">
+              <div class="admin-action-icon purple">&#128203;</div>
+              <div class="admin-action-body">
+                <div class="admin-action-title">Tasks</div>
+                <div class="admin-action-desc">View, create, delete tasks</div>
+              </div>
+              <div class="admin-action-arrow">&#8250;</div>
+            </button>
+            <button class="admin-action-btn" onclick="adminShowWithdrawals()">
+              <div class="admin-action-icon amber">&#128176;</div>
+              <div class="admin-action-body">
+                <div class="admin-action-title">Withdrawals</div>
+                <div class="admin-action-desc">Process pending withdrawals</div>
+              </div>
+              <div class="admin-action-arrow">&#8250;</div>
+            </button>
+            <button class="admin-action-btn" onclick="adminShowBroadcast()">
+              <div class="admin-action-icon blue">&#128227;</div>
+              <div class="admin-action-body">
+                <div class="admin-action-title">Broadcast</div>
+                <div class="admin-action-desc">Send message to all users</div>
+              </div>
+              <div class="admin-action-arrow">&#8250;</div>
+            </button>
+            <button class="admin-action-btn" onclick="adminShowCreateTask()">
+              <div class="admin-action-icon green">&#10133;</div>
+              <div class="admin-action-body">
+                <div class="admin-action-title">Create Task</div>
+                <div class="admin-action-desc">Add new task for users</div>
+              </div>
+              <div class="admin-action-arrow">&#8250;</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Admin sub-pages (toggled via JS) -->
+        <div id="adminSubPage" class="hidden"></div>
+      </section>
+
     </main>
 
     <!-- Bottom navigation -->
@@ -207,11 +273,11 @@
       </button>
       <button class="nav-btn" data-page="pageReferrals">
         <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-        <span>Referrals</span>
+        <span>Friends</span>
       </button>
       <button class="nav-btn" data-page="pageLeaders">
         <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        <span>Leaders</span>
+        <span>Top</span>
       </button>
       <button class="nav-btn" data-page="pageWallet">
         <svg class="nav-icon" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><path d="M1 10h22"/></svg>
@@ -220,6 +286,11 @@
       <button class="nav-btn" data-page="pageProfile">
         <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span>Profile</span>
+      </button>
+      <!-- Admin tab (hidden by default, shown via JS for admins) -->
+      <button class="nav-btn hidden" data-page="pageAdmin" id="navAdmin">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <span>Admin</span>
       </button>
     </nav>
 

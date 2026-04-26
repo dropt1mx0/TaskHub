@@ -112,7 +112,7 @@ async def cors_middleware(request, handler):
         resp = await handler(request)
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
     return resp
 
 
@@ -152,6 +152,7 @@ async def api_me(request: web.Request):
             bot_me.username if bot_me else "TaskHubBot", user.user_id
         ),
         "is_premium": user.is_premium,
+        "is_admin": user.user_id in config.ADMIN_IDS,
         "wallet_address": user.wallet_address,
     })
 
@@ -383,6 +384,246 @@ async def api_history(request: web.Request):
     })
 
 
+# ──────────────────────────── Admin helpers ───────────────────────────
+
+async def get_admin_from_request(request: web.Request) -> tuple[dict | None, User | None]:
+    """Like get_user_from_request but also verifies admin status."""
+    tg_user, user = await get_user_from_request(request)
+    if not user or user.user_id not in config.ADMIN_IDS:
+        return None, None
+    return tg_user, user
+
+
+# ──────────────────────────── Admin API routes ────────────────────────
+
+async def api_admin_stats(request: web.Request):
+    """GET /api/admin/stats"""
+    _, user = await get_admin_from_request(request)
+    if not user:
+        return error_response("Forbidden", 403)
+
+    async with await db.get_session() as session:
+        from database.queries import AdminQueries
+        stats = await AdminQueries.get_stats(session)
+
+    return json_response(stats)
+
+
+async def api_admin_tasks(request: web.Request):
+    """GET /api/admin/tasks - all tasks"""
+    _, user = await get_admin_from_request(request)
+    if not user:
+        return error_response("Forbidden", 403)
+
+    async with await db.get_session() as session:
+        tasks = await TaskQueries.get_all_tasks(session)
+        result = []
+        for t in tasks:
+            result.append({
+                "id": t.id,
+                "title": t.title,
+                "description": t.description,
+                "reward": round(t.reward, 3),
+                "type": t.task_type,
+                "channel_username": t.channel_username,
+                "is_active": t.is_active,
+                "total_completions": t.total_completions,
+                "created_by": t.created_by,
+            })
+
+    return json_response({"tasks": result})
+
+
+async def api_admin_create_task(request: web.Request):
+    """POST /api/admin/tasks - create a new task"""
+    _, user = await get_admin_from_request(request)
+    if not user:
+        return error_response("Forbidden", 403)
+
+    body = await request.json()
+    title = body.get("title", "").strip()
+    description = body.get("description", "").strip()
+    reward = float(body.get("reward", 0))
+    channel_username = body.get("channel_username", "").strip().lstrip("@")
+
+    if not title:
+        return error_response("Title is required")
+    if reward < 0.001:
+        return error_response("Minimum reward is 0.001 USDT")
+    if not channel_username:
+        return error_response("Channel username is required")
+
+    async with await db.get_session() as session:
+        task = await TaskQueries.create_task(
+            session,
+            title=title,
+            description=description or title,
+            reward=reward,
+            created_by=user.user_id,
+            channel_url=f"https://t.me/{channel_username}",
+            channel_username=channel_username,
+            task_type="channel_subscription",
+        )
+        logger.info(f"Admin {user.user_id} created task #{task.id} via webapp")
+
+    return json_response({"success": True, "task_id": task.id})
+
+
+async def api_admin_toggle_task(request: web.Request):
+    """POST /api/admin/tasks/{id}/toggle"""
+    _, user = await get_admin_from_request(request)
+    if not user:
+        return error_response("Forbidden", 403)
+
+    task_id = int(request.match_info["id"])
+
+    async with await db.get_session() as session:
+        task = await TaskQueries.get_task_by_id(session, task_id)
+        if not task:
+            return error_response("Task not found")
+        task.is_active = not task.is_active
+        await session.commit()
+        logger.info(f"Admin {user.user_id} toggled task #{task_id} -> {'active' if task.is_active else 'inactive'}")
+
+    return json_response({"success": True, "is_active": task.is_active})
+
+
+async def api_admin_delete_task(request: web.Request):
+    """DELETE /api/admin/tasks/{id}"""
+    _, user = await get_admin_from_request(request)
+    if not user:
+        return error_response("Forbidden", 403)
+
+    task_id = int(request.match_info["id"])
+
+    async with await db.get_session() as session:
+        success = await TaskQueries.delete_task(session, task_id)
+        if not success:
+            return error_response("Task not found or cannot be deleted")
+        logger.info(f"Admin {user.user_id} deleted task #{task_id} via webapp")
+
+    return json_response({"success": True})
+
+
+async def api_admin_withdrawals(request: web.Request):
+    """GET /api/admin/withdrawals - pending withdrawals"""
+    _, user = await get_admin_from_request(request)
+    if not user:
+        return error_response("Forbidden", 403)
+
+    async with await db.get_session() as session:
+        withdrawals = await WithdrawalQueries.get_pending_withdrawals(session)
+        result = []
+        for w in withdrawals:
+            user_info = await UserQueries.get_user(session, w.user_id)
+            result.append({
+                "id": w.id,
+                "user_id": w.user_id,
+                "username": user_info.username if user_info else None,
+                "amount": round(w.amount, 3),
+                "type": w.withdrawal_type,
+                "wallet": w.wallet_address,
+                "requested_at": w.requested_at.isoformat() if w.requested_at else None,
+            })
+
+    return json_response({"withdrawals": result})
+
+
+async def api_admin_approve_withdrawal(request: web.Request):
+    """POST /api/admin/withdrawals/{id}/approve"""
+    _, user = await get_admin_from_request(request)
+    if not user:
+        return error_response("Forbidden", 403)
+
+    w_id = int(request.match_info["id"])
+
+    async with await db.get_session() as session:
+        withdrawals = await WithdrawalQueries.get_pending_withdrawals(session)
+        withdrawal = next((w for w in withdrawals if w.id == w_id), None)
+
+        if not withdrawal:
+            return error_response("Withdrawal not found")
+
+        bank_balance = await Bank.get_balance(session)
+        if bank_balance < withdrawal.amount:
+            return error_response("Insufficient bank funds")
+
+        await WithdrawalQueries.update_withdrawal_status(
+            session, w_id, 'completed', processed_by=user.user_id
+        )
+        await Bank.withdraw_funds(session, withdrawal.amount, f"Withdrawal #{w_id}")
+        logger.info(f"Admin {user.user_id} approved withdrawal #{w_id} via webapp")
+
+    return json_response({"success": True})
+
+
+async def api_admin_reject_withdrawal(request: web.Request):
+    """POST /api/admin/withdrawals/{id}/reject"""
+    _, user = await get_admin_from_request(request)
+    if not user:
+        return error_response("Forbidden", 403)
+
+    w_id = int(request.match_info["id"])
+
+    async with await db.get_session() as session:
+        withdrawals = await WithdrawalQueries.get_pending_withdrawals(session)
+        withdrawal = next((w for w in withdrawals if w.id == w_id), None)
+
+        if not withdrawal:
+            return error_response("Withdrawal not found")
+
+        # Return funds to user
+        await UserQueries.update_balance(session, withdrawal.user_id, withdrawal.amount, hold=False)
+        await WithdrawalQueries.update_withdrawal_status(
+            session, w_id, 'failed', processed_by=user.user_id
+        )
+        logger.info(f"Admin {user.user_id} rejected withdrawal #{w_id} via webapp")
+
+    return json_response({"success": True})
+
+
+async def api_admin_broadcast(request: web.Request):
+    """POST /api/admin/broadcast  body: {"text": "..."}"""
+    _, user = await get_admin_from_request(request)
+    if not user:
+        return error_response("Forbidden", 403)
+
+    body = await request.json()
+    text = body.get("text", "").strip()
+    if not text:
+        return error_response("Message text is required")
+
+    import asyncio
+
+    # Get all user IDs
+    async with await db.get_session() as session:
+        result = await session.execute(select(User.user_id))
+        user_ids = result.scalars().all()
+
+    # Send via bot
+    success_count = 0
+    failed_count = 0
+    try:
+        from bot import bot as telegram_bot
+        for uid in user_ids:
+            try:
+                await telegram_bot.send_message(uid, text, parse_mode='HTML')
+                success_count += 1
+            except Exception:
+                failed_count += 1
+            await asyncio.sleep(0.05)
+    except Exception as e:
+        logger.error(f"Broadcast error: {e}")
+        return error_response(f"Broadcast error: {str(e)}")
+
+    logger.info(f"Admin {user.user_id} broadcast: {success_count} sent, {failed_count} failed")
+    return json_response({
+        "success": True,
+        "success_count": success_count,
+        "failed_count": failed_count,
+    })
+
+
 # ──────────────────────────── App factory ─────────────────────────────
 
 def create_app() -> web.Application:
@@ -417,6 +658,17 @@ def create_app() -> web.Application:
     app.router.add_get("/api/leaderboard", api_leaderboard)
     app.router.add_post("/api/withdraw", api_withdraw_request)
     app.router.add_get("/api/history", api_history)
+
+    # Admin API routes
+    app.router.add_get("/api/admin/stats", api_admin_stats)
+    app.router.add_get("/api/admin/tasks", api_admin_tasks)
+    app.router.add_post("/api/admin/tasks", api_admin_create_task)
+    app.router.add_post("/api/admin/tasks/{id}/toggle", api_admin_toggle_task)
+    app.router.add_delete("/api/admin/tasks/{id}", api_admin_delete_task)
+    app.router.add_get("/api/admin/withdrawals", api_admin_withdrawals)
+    app.router.add_post("/api/admin/withdrawals/{id}/approve", api_admin_approve_withdrawal)
+    app.router.add_post("/api/admin/withdrawals/{id}/reject", api_admin_reject_withdrawal)
+    app.router.add_post("/api/admin/broadcast", api_admin_broadcast)
 
     # Serve static files (HTML/CSS/JS)
     if os.path.isdir(static_dir):

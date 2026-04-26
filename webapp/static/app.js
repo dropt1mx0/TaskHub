@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════
    TaskHub Mini App — Frontend logic
-   Telegram WebApp SDK + REST API calls + Fortune Wheel canvas
+   Modern UI + Fixed Wheel + Admin Panel
    ═══════════════════════════════════════════════════════════════════ */
 
 // ─── Telegram WebApp ─────────────────────────────────────────────
@@ -9,24 +9,29 @@ let initData = "";
 if (tg) {
   tg.ready();
   tg.expand();
+  tg.setHeaderColor("#0d0d0f");
+  tg.setBackgroundColor("#0d0d0f");
   initData = tg.initData || "";
-  // Apply Telegram theme
-  document.documentElement.style.setProperty("--tg-theme-bg-color", tg.themeParams.bg_color || "#1c1c1e");
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────
 const API = "/api";
 
 async function api(path, options = {}) {
-  const res = await fetch(API + path, {
-    headers: {
-      "Authorization": "tma " + initData,
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-    ...options,
-  });
-  return res.json();
+  try {
+    const res = await fetch(API + path, {
+      headers: {
+        "Authorization": "tma " + initData,
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      ...options,
+    });
+    return res.json();
+  } catch (e) {
+    console.error("API error:", e);
+    return { error: e.message };
+  }
 }
 
 function $(sel) { return document.querySelector(sel); }
@@ -43,7 +48,7 @@ function toast(msg) {
   el.className = "toast";
   el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  setTimeout(() => el.remove(), 3200);
 }
 
 function haptic(type = "impact") {
@@ -54,9 +59,30 @@ function haptic(type = "impact") {
   }
 }
 
+function esc(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
+
+// ─── Confetti ────────────────────────────────────────────────────
+function showConfetti() {
+  const colors = ["#6c5ce7", "#a29bfe", "#00d68f", "#ffd43b", "#ff6b6b", "#339af0", "#f06595", "#22b8cf"];
+  for (let i = 0; i < 40; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.style.left = Math.random() * 100 + "vw";
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = (1.5 + Math.random() * 2) + "s";
+    piece.style.animationDelay = Math.random() * 0.5 + "s";
+    piece.style.width = (4 + Math.random() * 6) + "px";
+    piece.style.height = (4 + Math.random() * 6) + "px";
+    piece.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 4000);
+  }
+}
+
 // ─── State ───────────────────────────────────────────────────────
 let currentPage = "pageTasks";
 let userData = null;
+let isAdmin = false;
 let wheelPrizes = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1];
 let wheelSpinning = false;
 let wheelAngle = 0;
@@ -70,14 +96,12 @@ function showPage(pageId) {
     currentPage = pageId;
   }
 
-  // Update nav buttons
   $$(".nav-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.page === pageId);
   });
 
   haptic();
 
-  // Load page data
   switch (pageId) {
     case "pageTasks":    loadTasks(); break;
     case "pageWheel":    loadWheel(); break;
@@ -85,10 +109,10 @@ function showPage(pageId) {
     case "pageLeaders":  loadLeaders(); break;
     case "pageWallet":   loadWallet(); break;
     case "pageProfile":  loadProfile(); break;
+    case "pageAdmin":    loadAdmin(); break;
   }
 }
 
-// Attach nav clicks
 document.addEventListener("DOMContentLoaded", () => {
   $$(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => showPage(btn.dataset.page));
@@ -101,13 +125,20 @@ async function init() {
     const data = await api("/me");
     if (data.error) {
       console.error("Auth error:", data.error);
-      // In dev mode, show app anyway
       hideSplash();
       return;
     }
     userData = data;
+    isAdmin = data.is_admin || false;
     updateHeader(data);
     updateBalance(data);
+
+    // Show admin tab if user is admin
+    if (isAdmin) {
+      const navAdmin = $("#navAdmin");
+      if (navAdmin) navAdmin.classList.remove("hidden");
+    }
+
     hideSplash();
     showPage("pageTasks");
   } catch (e) {
@@ -121,7 +152,7 @@ function hideSplash() {
   const app = $("#app");
   splash.classList.add("fade-out");
   app.classList.remove("hidden");
-  setTimeout(() => splash.remove(), 500);
+  setTimeout(() => splash.remove(), 600);
 }
 
 function updateHeader(data) {
@@ -147,8 +178,13 @@ async function loadTasks() {
   if (!data.tasks || data.tasks.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
-        <lottie-player src="https://assets3.lottiefiles.com/packages/lf20_WpDG3calyJ.json"
-          background="transparent" speed="1" style="width:100px;height:100px" loop autoplay></lottie-player>
+        <div class="empty-sticker">
+          <svg viewBox="0 0 100 100" fill="none"><rect x="20" y="10" width="60" height="75" rx="8" stroke="#636366" stroke-width="2" fill="none"/>
+          <line x1="35" y1="32" x2="65" y2="32" stroke="#636366" stroke-width="2" stroke-linecap="round"/>
+          <line x1="35" y1="44" x2="58" y2="44" stroke="#636366" stroke-width="2" stroke-linecap="round"/>
+          <line x1="35" y1="56" x2="52" y2="56" stroke="#636366" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="72" cy="68" r="18" fill="#6c5ce7" opacity=".2"/><path d="M66 68l4 4 8-8" stroke="#6c5ce7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
         <p>No tasks available right now</p>
       </div>`;
     return;
@@ -156,7 +192,7 @@ async function loadTasks() {
 
   list.innerHTML = data.tasks.map((t) => `
     <div class="task-card" onclick="openTask(${t.id})" data-task='${JSON.stringify(t).replace(/'/g, "&#39;")}'>
-      <div class="task-icon">${t.type === "channel_subscription" ? "📢" : "🔗"}</div>
+      <div class="task-icon">${t.type === "channel_subscription" ? "&#128226;" : "&#128279;"}</div>
       <div class="task-body">
         <div class="task-title">${esc(t.title)}</div>
         <div class="task-desc">${t.channel_username ? "@" + esc(t.channel_username) : (esc(t.description || ""))}</div>
@@ -166,17 +202,12 @@ async function loadTasks() {
   `).join("");
 }
 
-function esc(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
-
 function openTask(taskId) {
-  // Find task data from the card
   const card = document.querySelector(`.task-card[onclick="openTask(${taskId})"]`);
   if (!card) return;
   const task = JSON.parse(card.dataset.task);
-
   haptic();
 
-  // Create modal
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   overlay.innerHTML = `
@@ -184,7 +215,7 @@ function openTask(taskId) {
       <div class="modal-handle"></div>
       <div class="modal-title">${esc(task.title)}</div>
       <div class="modal-desc">${esc(task.description || "Subscribe to the channel to earn reward.")}</div>
-      ${task.channel_username ? `<p style="font-size:14px;margin-bottom:12px">Channel: <a href="https://t.me/${esc(task.channel_username)}" target="_blank" style="color:var(--tg-theme-link-color)">@${esc(task.channel_username)}</a></p>` : ""}
+      ${task.channel_username ? `<p style="font-size:14px;margin-bottom:12px">Channel: <a href="https://t.me/${esc(task.channel_username)}" target="_blank">@${esc(task.channel_username)}</a></p>` : ""}
       <div class="modal-reward">+${fmt(task.reward)} USDT</div>
       <div class="modal-actions">
         ${task.channel_url ? `<a href="${esc(task.channel_url)}" target="_blank" class="btn btn-secondary" style="text-decoration:none">Open Channel</a>` : ""}
@@ -194,16 +225,14 @@ function openTask(taskId) {
   `;
   document.body.appendChild(overlay);
 
-  // Close on overlay click
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) overlay.remove();
   });
 
-  // Complete task button
   overlay.querySelector("#btnCompleteTask").addEventListener("click", async () => {
     const btn = overlay.querySelector("#btnCompleteTask");
     btn.disabled = true;
-    btn.textContent = "Checking...";
+    btn.innerHTML = '<span class="loading-spinner"></span>';
 
     const res = await api(`/tasks/${taskId}/complete`, { method: "POST" });
     if (res.success) {
@@ -221,75 +250,121 @@ function openTask(taskId) {
     } else {
       haptic("error");
       btn.textContent = res.error || "Error";
-      setTimeout(() => { btn.textContent = "Complete Task"; btn.disabled = false; }, 2000);
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = "Complete Task"; }, 2000);
     }
   });
 }
 
 // ─── Fortune Wheel (Canvas) ──────────────────────────────────────
 const WHEEL_COLORS = [
-  "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4",
-  "#FFEAA7", "#DDA0DD", "#98D8C8"
+  "#6c5ce7", "#00d68f", "#339af0", "#ffd43b",
+  "#f06595", "#22b8cf", "#ff6b6b", "#a29bfe"
 ];
 
 function drawWheel(angle = 0) {
   const canvas = $("#wheelCanvas");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-  const r = cx - 6;
+  const size = canvas.width;
+  const cx = size / 2;
+  const cy = size / 2;
+  const outerR = cx - 4;
+  const innerR = outerR - 8;
   const n = wheelPrizes.length;
   const arc = (2 * Math.PI) / n;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, size, size);
+
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR, 0, 2 * Math.PI);
+  const ringGrad = ctx.createLinearGradient(0, 0, size, size);
+  ringGrad.addColorStop(0, "#2d2d30");
+  ringGrad.addColorStop(1, "#1a1a1c");
+  ctx.fillStyle = ringGrad;
+  ctx.fill();
+
+  // Dot markers on ring
+  for (let i = 0; i < n * 2; i++) {
+    const dotAngle = (i / (n * 2)) * 2 * Math.PI - Math.PI / 2;
+    const dotX = cx + (outerR - 4) * Math.cos(dotAngle);
+    const dotY = cy + (outerR - 4) * Math.sin(dotAngle);
+    ctx.beginPath();
+    ctx.arc(dotX, dotY, 2, 0, 2 * Math.PI);
+    ctx.fillStyle = i % 2 === 0 ? "rgba(255,255,255,.3)" : "rgba(108,92,231,.4)";
+    ctx.fill();
+  }
+
+  // Wheel slices
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(angle);
 
   for (let i = 0; i < n; i++) {
     const startAngle = i * arc - Math.PI / 2;
+
     // Slice
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.arc(0, 0, r, startAngle, startAngle + arc);
+    ctx.arc(0, 0, innerR, startAngle, startAngle + arc);
     ctx.closePath();
-    ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length];
+
+    const sliceGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, innerR);
+    const baseColor = WHEEL_COLORS[i % WHEEL_COLORS.length];
+    sliceGrad.addColorStop(0, adjustBrightness(baseColor, 30));
+    sliceGrad.addColorStop(1, baseColor);
+    ctx.fillStyle = sliceGrad;
     ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,.15)";
-    ctx.lineWidth = 1.5;
+
+    // Slice border
+    ctx.strokeStyle = "rgba(0,0,0,.2)";
+    ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Text
+    // Prize text
     ctx.save();
     ctx.rotate(startAngle + arc / 2);
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 13px -apple-system, sans-serif";
+    ctx.font = "bold 14px -apple-system, SF Pro Display, sans-serif";
     ctx.textAlign = "center";
-    ctx.shadowColor = "rgba(0,0,0,.4)";
-    ctx.shadowBlur = 3;
-    ctx.fillText(wheelPrizes[i] + "", r * 0.65, 5);
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(0,0,0,.5)";
+    ctx.shadowBlur = 4;
+    ctx.fillText(String(wheelPrizes[i]), innerR * 0.62, 0);
+    ctx.shadowBlur = 0;
     ctx.restore();
   }
 
   ctx.restore();
 
-  // Center circle
+  // Center circle with gradient
   ctx.beginPath();
-  ctx.arc(cx, cy, 22, 0, 2 * Math.PI);
-  ctx.fillStyle = "#fff";
+  ctx.arc(cx, cy, 26, 0, 2 * Math.PI);
+  ctx.fillStyle = "#1a1a1c";
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(cx, cy, 20, 0, 2 * Math.PI);
-  const grad = ctx.createLinearGradient(cx - 20, cy - 20, cx + 20, cy + 20);
-  grad.addColorStop(0, "#007aff");
-  grad.addColorStop(1, "#5856d6");
-  ctx.fillStyle = grad;
+  ctx.arc(cx, cy, 23, 0, 2 * Math.PI);
+  const centerGrad = ctx.createLinearGradient(cx - 23, cy - 23, cx + 23, cy + 23);
+  centerGrad.addColorStop(0, "#6c5ce7");
+  centerGrad.addColorStop(1, "#a29bfe");
+  ctx.fillStyle = centerGrad;
   ctx.fill();
+
+  // Center text
   ctx.fillStyle = "#fff";
-  ctx.font = "bold 10px sans-serif";
+  ctx.font = "bold 10px -apple-system, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("SPIN", cx, cy + 4);
+  ctx.textBaseline = "middle";
+  ctx.fillText("SPIN", cx, cy);
+}
+
+function adjustBrightness(hex, percent) {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const r = Math.min(255, ((num >> 16) & 0xff) + percent);
+  const g = Math.min(255, ((num >> 8) & 0xff) + percent);
+  const b = Math.min(255, (num & 0xff) + percent);
+  return `rgb(${r},${g},${b})`;
 }
 
 async function loadWheel() {
@@ -331,7 +406,7 @@ async function loadWheel() {
       </div>
     `).join("");
   } else {
-    histEl.innerHTML = `<p style="color:var(--tg-theme-hint-color);font-size:13px;text-align:center;padding:12px">No spins yet</p>`;
+    histEl.innerHTML = `<p style="color:var(--text-secondary);font-size:13px;text-align:center;padding:16px">No spins yet</p>`;
   }
 }
 
@@ -345,14 +420,15 @@ async function spinWheel(isFree) {
   btnFree.disabled = true;
   btnPaid.disabled = true;
 
-  // Spin animation
-  const duration = 3500;
+  // Hide previous result
+  $("#wheelResult").classList.add("hidden");
+
+  const duration = 4000;
   const startAngle = wheelAngle;
-  const extraSpins = 5 + Math.random() * 3;
+  const extraSpins = 6 + Math.random() * 4;
   const targetAngle = startAngle + extraSpins * 2 * Math.PI;
   const startTime = performance.now();
 
-  // Make API call in parallel
   const resultPromise = api("/wheel/spin", {
     method: "POST",
     body: JSON.stringify({ is_free: isFree }),
@@ -361,8 +437,7 @@ async function spinWheel(isFree) {
   function animate(now) {
     const elapsed = now - startTime;
     const t = Math.min(elapsed / duration, 1);
-    // Ease out cubic
-    const ease = 1 - Math.pow(1 - t, 3);
+    const ease = 1 - Math.pow(1 - t, 4); // quartic ease-out
     wheelAngle = startAngle + (targetAngle - startAngle) * ease;
     drawWheel(wheelAngle);
 
@@ -387,10 +462,7 @@ async function finishSpin(resultPromise) {
     haptic("success");
     rewardText.textContent = fmt(res.reward);
     resultEl.classList.remove("hidden");
-
-    // Play win animation
-    const lottie = $("#winAnimation");
-    if (lottie && lottie.play) lottie.play();
+    showConfetti();
 
     if (userData) {
       userData.balance = res.balance;
@@ -399,18 +471,15 @@ async function finishSpin(resultPromise) {
       updateBalance(userData);
     }
 
-    // Hide result after delay
-    setTimeout(() => resultEl.classList.add("hidden"), 4000);
+    setTimeout(() => resultEl.classList.add("hidden"), 5000);
   } else {
     haptic("error");
     toast(res.error || "Spin failed");
   }
 
-  // Reload wheel state
-  setTimeout(loadWheel, 500);
+  setTimeout(loadWheel, 600);
 }
 
-// Attach spin handlers
 document.addEventListener("DOMContentLoaded", () => {
   $("#btnSpinFree")?.addEventListener("click", () => spinWheel(true));
   $("#btnSpinPaid")?.addEventListener("click", () => spinWheel(false));
@@ -434,18 +503,17 @@ async function loadReferrals() {
     list.innerHTML = data.referrals.map((r) => `
       <div class="ref-item">
         <div>
-          <span class="ref-item-name">${esc(r.username)} ${r.is_premium ? "⭐" : ""}</span>
+          <span class="ref-item-name">${esc(r.username)} ${r.is_premium ? "&#11088;" : ""}</span>
           <span class="ref-item-tasks">${r.tasks_completed} tasks</span>
         </div>
         <span class="ref-item-earnings">+${fmt(r.passive_earnings)}</span>
       </div>
     `).join("");
   } else {
-    list.innerHTML = `<p style="color:var(--tg-theme-hint-color);font-size:13px;text-align:center;padding:12px">No referrals yet. Share your link!</p>`;
+    list.innerHTML = `<p style="color:var(--text-secondary);font-size:13px;text-align:center;padding:16px">No referrals yet. Share your link!</p>`;
   }
 }
 
-// Copy referral link
 document.addEventListener("DOMContentLoaded", () => {
   $("#btnCopyRef")?.addEventListener("click", () => {
     const input = $("#refLinkInput");
@@ -468,14 +536,14 @@ async function loadLeaders() {
 
   const list = $("#leadersList");
   if (!data.leaders || data.leaders.length === 0) {
-    list.innerHTML = `<p style="color:var(--tg-theme-hint-color);font-size:13px;text-align:center;padding:20px">No leaders yet</p>`;
+    list.innerHTML = `<p style="color:var(--text-secondary);font-size:13px;text-align:center;padding:24px">No leaders yet</p>`;
     return;
   }
 
   list.innerHTML = data.leaders.map((l, i) => {
     const rank = i + 1;
     const rankClass = rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
-    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank;
+    const medal = rank === 1 ? "&#129351;" : rank === 2 ? "&#129352;" : rank === 3 ? "&#129353;" : rank;
     const isMe = data.my_id === l.user_id;
     return `
       <div class="leader-item ${isMe ? "is-me" : ""}">
@@ -496,13 +564,12 @@ async function loadWallet() {
   }
   $("#minWithdraw").textContent = "1.0";
 
-  // Load history
   const data = await api("/history");
   if (data.error) return;
 
   const list = $("#historyList");
   if (!data.withdrawals || data.withdrawals.length === 0) {
-    list.innerHTML = `<p style="color:var(--tg-theme-hint-color);font-size:13px;text-align:center;padding:12px">No withdrawals yet</p>`;
+    list.innerHTML = `<p style="color:var(--text-secondary);font-size:13px;text-align:center;padding:16px">No withdrawals yet</p>`;
     return;
   }
 
@@ -521,7 +588,6 @@ async function loadWallet() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Toggle currency type
   $("#togUsdt")?.addEventListener("click", () => {
     withdrawType = "usdt";
     $("#togUsdt").classList.add("active");
@@ -535,7 +601,6 @@ document.addEventListener("DOMContentLoaded", () => {
     haptic();
   });
 
-  // Submit withdrawal
   $("#btnWithdraw")?.addEventListener("click", async () => {
     const amount = parseFloat($("#withdrawAmount").value);
     const wallet = $("#withdrawWallet").value.trim();
@@ -558,7 +623,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     btn.disabled = true;
-    btn.textContent = "Processing...";
+    btn.innerHTML = '<span class="loading-spinner"></span>';
 
     const res = await api("/withdraw", {
       method: "POST",
@@ -603,6 +668,276 @@ function loadProfile() {
   $("#pTasks").textContent = userData.tasks_completed || 0;
   $("#pStreak").textContent = userData.login_streak || 0;
   $("#pRefs").textContent = userData.referral_count || 0;
+}
+
+// ═════════════════════════════════════════════════════════════════
+// ─── ADMIN PANEL ─────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════
+
+async function loadAdmin() {
+  if (!isAdmin) return;
+
+  // Load stats
+  const stats = await api("/admin/stats");
+  if (!stats.error) {
+    $("#adminTotalUsers").textContent = stats.total_users || 0;
+    $("#adminNewUsers").textContent = stats.new_users_24h || 0;
+    $("#adminBankBalance").textContent = fmt(stats.bank_balance);
+    $("#adminPendingW").textContent = stats.pending_withdrawals || 0;
+  }
+
+  // Show main menu, hide sub-pages
+  $("#adminMainMenu").classList.remove("hidden");
+  $("#adminSubPage").classList.add("hidden");
+}
+
+function adminShowSubPage(html) {
+  $("#adminMainMenu").classList.add("hidden");
+  const sub = $("#adminSubPage");
+  sub.innerHTML = html;
+  sub.classList.remove("hidden");
+}
+
+function adminBack() {
+  $("#adminMainMenu").classList.remove("hidden");
+  $("#adminSubPage").classList.add("hidden");
+  loadAdmin();
+}
+
+// ─── Admin: Tasks ────────────────────────────────────────────────
+async function adminShowTasks() {
+  haptic();
+  adminShowSubPage('<div style="text-align:center;padding:20px"><span class="loading-spinner"></span></div>');
+
+  const data = await api("/admin/tasks");
+  if (data.error) {
+    adminShowSubPage(`<p style="color:var(--red);padding:16px">${data.error}</p>`);
+    return;
+  }
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h3 style="font-size:16px;font-weight:700">All Tasks</h3>
+    <button class="btn btn-sm btn-secondary" onclick="adminBack()">Back</button>
+  </div>`;
+
+  if (!data.tasks || data.tasks.length === 0) {
+    html += `<p style="color:var(--text-secondary);text-align:center;padding:20px">No tasks</p>`;
+  } else {
+    data.tasks.forEach((t) => {
+      html += `
+        <div class="admin-task-item">
+          <div class="admin-task-status">${t.is_active ? "&#9989;" : "&#10060;"}</div>
+          <div class="admin-task-body">
+            <div class="admin-task-title">#${t.id} ${esc(t.title)}</div>
+            <div class="admin-task-meta">${fmt(t.reward)} USDT | ${t.total_completions} done</div>
+          </div>
+          <div class="admin-task-actions">
+            <button class="btn btn-sm ${t.is_active ? "btn-secondary" : "btn-success"}" onclick="adminToggleTask(${t.id})">${t.is_active ? "Off" : "On"}</button>
+            <button class="btn btn-sm btn-danger" onclick="adminDeleteTask(${t.id})">Del</button>
+          </div>
+        </div>`;
+    });
+  }
+
+  adminShowSubPage(html);
+}
+
+async function adminToggleTask(taskId) {
+  haptic();
+  const res = await api(`/admin/tasks/${taskId}/toggle`, { method: "POST" });
+  if (res.success) {
+    toast("Task updated");
+    adminShowTasks();
+  } else {
+    toast(res.error || "Error");
+  }
+}
+
+async function adminDeleteTask(taskId) {
+  if (!confirm("Delete this task?")) return;
+  haptic();
+  const res = await api(`/admin/tasks/${taskId}`, { method: "DELETE" });
+  if (res.success) {
+    toast("Task deleted");
+    adminShowTasks();
+  } else {
+    toast(res.error || "Error");
+  }
+}
+
+// ─── Admin: Withdrawals ──────────────────────────────────────────
+async function adminShowWithdrawals() {
+  haptic();
+  adminShowSubPage('<div style="text-align:center;padding:20px"><span class="loading-spinner"></span></div>');
+
+  const data = await api("/admin/withdrawals");
+  if (data.error) {
+    adminShowSubPage(`<p style="color:var(--red);padding:16px">${data.error}</p>`);
+    return;
+  }
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h3 style="font-size:16px;font-weight:700">Pending Withdrawals</h3>
+    <button class="btn btn-sm btn-secondary" onclick="adminBack()">Back</button>
+  </div>`;
+
+  if (!data.withdrawals || data.withdrawals.length === 0) {
+    html += `<p style="color:var(--text-secondary);text-align:center;padding:20px">No pending withdrawals</p>`;
+  } else {
+    data.withdrawals.forEach((w) => {
+      html += `
+        <div class="admin-withdrawal-item">
+          <div class="admin-withdrawal-header">
+            <span class="admin-withdrawal-user">@${esc(w.username || "user_" + w.user_id)}</span>
+            <span class="admin-withdrawal-amount">${fmt(w.amount)} ${(w.type || "usdt").toUpperCase()}</span>
+          </div>
+          <div class="admin-withdrawal-wallet">${esc(w.wallet)}</div>
+          <div class="admin-withdrawal-details">${w.requested_at ? new Date(w.requested_at).toLocaleString() : ""}</div>
+          <div class="admin-withdrawal-actions">
+            <button class="btn btn-sm btn-success" onclick="adminApproveW(${w.id})">Approve</button>
+            <button class="btn btn-sm btn-danger" onclick="adminRejectW(${w.id})">Reject</button>
+          </div>
+        </div>`;
+    });
+  }
+
+  adminShowSubPage(html);
+}
+
+async function adminApproveW(id) {
+  haptic();
+  const res = await api(`/admin/withdrawals/${id}/approve`, { method: "POST" });
+  if (res.success) {
+    toast("Approved");
+    adminShowWithdrawals();
+  } else {
+    toast(res.error || "Error");
+  }
+}
+
+async function adminRejectW(id) {
+  haptic();
+  const res = await api(`/admin/withdrawals/${id}/reject`, { method: "POST" });
+  if (res.success) {
+    toast("Rejected");
+    adminShowWithdrawals();
+  } else {
+    toast(res.error || "Error");
+  }
+}
+
+// ─── Admin: Broadcast ────────────────────────────────────────────
+function adminShowBroadcast() {
+  haptic();
+  const html = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="font-size:16px;font-weight:700">Broadcast</h3>
+      <button class="btn btn-sm btn-secondary" onclick="adminBack()">Back</button>
+    </div>
+    <div class="admin-form">
+      <div class="form-group">
+        <label>Message (HTML supported)</label>
+        <textarea class="admin-broadcast-textarea" id="broadcastText" placeholder="Enter message for all users..."></textarea>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnBroadcast" onclick="adminSendBroadcast()">Send Broadcast</button>
+      <div id="broadcastResult" class="hidden" style="margin-top:12px;padding:12px;border-radius:10px;text-align:center;font-size:14px"></div>
+    </div>
+  `;
+  adminShowSubPage(html);
+}
+
+async function adminSendBroadcast() {
+  const text = $("#broadcastText")?.value?.trim();
+  if (!text) { toast("Enter a message"); return; }
+  if (!confirm("Send this message to ALL users?")) return;
+
+  haptic();
+  const btn = $("#btnBroadcast");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span> Sending...';
+
+  const res = await api("/admin/broadcast", {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+
+  const resultEl = $("#broadcastResult");
+  resultEl.classList.remove("hidden");
+  if (res.success) {
+    resultEl.style.background = "var(--green-glow)";
+    resultEl.style.color = "var(--green)";
+    resultEl.textContent = `Sent: ${res.success_count} | Failed: ${res.failed_count}`;
+    haptic("success");
+  } else {
+    resultEl.style.background = "rgba(255,107,107,.1)";
+    resultEl.style.color = "var(--red)";
+    resultEl.textContent = res.error || "Broadcast failed";
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Send Broadcast";
+}
+
+// ─── Admin: Create Task ──────────────────────────────────────────
+function adminShowCreateTask() {
+  haptic();
+  const html = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="font-size:16px;font-weight:700">Create Task</h3>
+      <button class="btn btn-sm btn-secondary" onclick="adminBack()">Back</button>
+    </div>
+    <div class="admin-form">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" class="form-input" id="newTaskTitle" placeholder="Subscribe to channel">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" class="form-input" id="newTaskDesc" placeholder="Description...">
+      </div>
+      <div class="form-group">
+        <label>Reward (USDT)</label>
+        <input type="number" class="form-input" id="newTaskReward" placeholder="0.01" step="0.001" min="0.001">
+      </div>
+      <div class="form-group">
+        <label>Channel Username (without @)</label>
+        <input type="text" class="form-input" id="newTaskChannel" placeholder="channel_name">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="adminCreateTask()">Create Task</button>
+    </div>
+  `;
+  adminShowSubPage(html);
+}
+
+async function adminCreateTask() {
+  const title = $("#newTaskTitle")?.value?.trim();
+  const description = $("#newTaskDesc")?.value?.trim();
+  const reward = parseFloat($("#newTaskReward")?.value);
+  const channel = $("#newTaskChannel")?.value?.trim();
+
+  if (!title) { toast("Enter title"); return; }
+  if (!reward || reward < 0.001) { toast("Enter valid reward"); return; }
+  if (!channel) { toast("Enter channel username"); return; }
+
+  haptic();
+  const res = await api("/admin/tasks", {
+    method: "POST",
+    body: JSON.stringify({
+      title,
+      description: description || title,
+      reward,
+      channel_username: channel.replace("@", ""),
+    }),
+  });
+
+  if (res.success) {
+    haptic("success");
+    toast("Task created!");
+    adminShowTasks();
+  } else {
+    haptic("error");
+    toast(res.error || "Error creating task");
+  }
 }
 
 // ─── Boot ────────────────────────────────────────────────────────

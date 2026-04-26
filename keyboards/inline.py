@@ -8,51 +8,16 @@ class InlineKeyboards:
     
     @staticmethod
     def main_menu(lang: str = 'ru') -> InlineKeyboardMarkup:
-        """Главное меню"""
+        """Главное меню — только кнопка Mini App"""
         keyboard = [
-            # Mini App button (opens the WebApp)
             [InlineKeyboardButton(
-                text="🚀 Open TaskHub App",
+                text="🚀 Open TaskHub",
                 web_app=WebAppInfo(url=config.WEBAPP_URL)
-            )],
-            [InlineKeyboardButton(
-                text=get_text('tasks', lang), 
-                callback_data='tasks'
             )],
             [InlineKeyboardButton(
                 text=get_text('instructions', lang), 
                 callback_data='instructions'
-            )],
-            [
-                InlineKeyboardButton(
-                    text=get_text('withdraw', lang), 
-                    callback_data='withdraw'
-                ),
-                InlineKeyboardButton(
-                    text=get_text('profile', lang), 
-                    callback_data='profile'
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=get_text('wheel', lang), 
-                    callback_data='wheel'
-                ),
-                InlineKeyboardButton(
-                    text=get_text('referrals', lang), 
-                    callback_data='referrals'
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=get_text('leaders', lang), 
-                    callback_data='leaders'
-                ),
-                InlineKeyboardButton(
-                    text=get_text('advertiser', lang), 
-                    callback_data='advertiser'
-                )
-            ]
+            )]
         ]
         return InlineKeyboardMarkup(inline_keyboard=keyboard)
     

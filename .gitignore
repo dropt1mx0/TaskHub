@@ -6,3 +6,4 @@ logs/
 .env
 *.zip
 *.rar
+*.png
