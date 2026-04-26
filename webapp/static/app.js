@@ -8,8 +8,8 @@ let initData = "";
 if (tg) {
   tg.ready();
   tg.expand();
-  tg.setHeaderColor("#0a0a0a");
-  tg.setBackgroundColor("#0a0a0a");
+  tg.setHeaderColor("#050508");
+  tg.setBackgroundColor("#050508");
   initData = tg.initData || "";
 }
 
@@ -158,7 +158,9 @@ async function loadTasks() {
   if (!data.tasks || data.tasks.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
-        <lottie-player src="https://assets2.lottiefiles.com/packages/lf20_kkflmtur.json" background="transparent" speed="1" style="width:120px;height:120px" autoplay loop></lottie-player>
+        <img class="sticker" style="width:120px;height:120px" src="/static/stickers/tasks-empty.gif"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'" alt="">
+        <lottie-player style="display:none;width:120px;height:120px" src="https://assets2.lottiefiles.com/packages/lf20_kkflmtur.json" background="transparent" speed="1" autoplay loop></lottie-player>
         <p>Нет доступных заданий</p>
       </div>`;
     return;
