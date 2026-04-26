@@ -1,27 +1,26 @@
 # keep_alive.py
-# Запускает Mini App веб-сервер в фоновом потоке.
-# На Render: Cron-Job.org пингует корневой URL "/" каждую минуту — Render не усыпит сервис.
-# Этот же сервер обслуживает Telegram Mini App (API + фронтенд).
+# Простой HTTP-сервер в отдельном потоке — отвечает на пинги от Cron-Job.org.
+# Mini App (aiohttp) запускается отдельно в основном asyncio loop (см. bot.py).
 
-import asyncio
-import os
 from threading import Thread
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import os
+
+
+class _Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"TaskHub is alive!")
+
+    def log_message(self, *args):
+        pass
 
 
 def keep_alive():
-    """Запустить aiohttp Mini App сервер в отдельном потоке."""
-    port = int(os.environ.get("PORT", 8080))
-
-    def _run():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        from webapp.server import create_app
-        from aiohttp import web
-
-        app = create_app()
-        web.run_app(app, host="0.0.0.0", port=port, print=lambda *_: None)
-
-    thread = Thread(target=_run, daemon=True)
-    thread.start()
-    print(f"[keep_alive] Mini App server started on port {port}")
+    port = int(os.environ.get("KEEP_ALIVE_PORT", os.environ.get("PORT", 8080)))
+    server = HTTPServer(("0.0.0.0", port), _Handler)
+    t = Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    print(f"[keep_alive] Ping server started on port {port}")

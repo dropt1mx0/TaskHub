@@ -10,7 +10,7 @@ from config import config
 from database.db import db
 from database.queries import SubscriptionQueries, TaskQueries, UserQueries
 from services.subscription_service import subscription_service
-from keep_alive import keep_alive
+from webapp.server import start_webapp
 
 # Импортируем все роутеры
 from handlers import (
@@ -161,8 +161,12 @@ async def on_shutdown():
 
 async def main():
     """Главная функция"""
-    # Запускаем Mini App веб-сервер (keep_alive для Render + Mini App API)
-    keep_alive()
+    import os
+    
+    # Mini App aiohttp сервер на PORT (Render устанавливает PORT автоматически).
+    # Cron-Job.org пингует "/" — получает 200 (index.html), Render не усыпит.
+    webapp_port = int(os.environ.get("PORT", 8080))
+    await start_webapp(host="0.0.0.0", port=webapp_port)
     
     await on_startup()
     
