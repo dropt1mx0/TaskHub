@@ -388,6 +388,25 @@ async def api_history(request: web.Request):
 def create_app() -> web.Application:
     app = web.Application(middlewares=[cors_middleware])
 
+    # Static files directory
+    static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+    logger.info(f"Static dir: {static_dir}, exists: {os.path.isdir(static_dir)}")
+
+    # Health check — Cron-Job.org pings this
+    async def health_handler(request):
+        return web.Response(text="OK", content_type="text/plain")
+
+    app.router.add_get("/health", health_handler)
+
+    # Serve index.html at root
+    async def index_handler(request):
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.isfile(index_path):
+            return web.FileResponse(index_path)
+        return web.Response(text="TaskHub Mini App — index.html not found", status=500)
+
+    app.router.add_get("/", index_handler)
+
     # API routes
     app.router.add_get("/api/me", api_me)
     app.router.add_get("/api/tasks", api_tasks)
@@ -400,14 +419,8 @@ def create_app() -> web.Application:
     app.router.add_get("/api/history", api_history)
 
     # Serve static files (HTML/CSS/JS)
-    static_dir = os.path.join(os.path.dirname(__file__), "static")
-    app.router.add_static("/static", static_dir)
-
-    # Serve index.html at root
-    async def index_handler(request):
-        return web.FileResponse(os.path.join(static_dir, "index.html"))
-
-    app.router.add_get("/", index_handler)
+    if os.path.isdir(static_dir):
+        app.router.add_static("/static", static_dir)
 
     return app
 
