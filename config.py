@@ -65,7 +65,7 @@ class Config:
     
     # Mini App (WebApp) settings
     # Render устанавливает PORT автоматически, keep_alive.py его читает
-    WEBAPP_URL: str = os.getenv('WEBAPP_URL', 'https://your-project.onrender.com')  # URL от Render
+    WEBAPP_URL: str = os.getenv('WEBAPP_URL', 'https://taskhub-4bi4.onrender.com')  # URL от Render
     
     # Ссылки
     NEWS_CHANNEL: str = os.getenv('NEWS_CHANNEL', '')
