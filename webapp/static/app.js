@@ -8,8 +8,8 @@ let initData = "";
 if (tg) {
   tg.ready();
   tg.expand();
-  tg.setHeaderColor("#0a0a0f");
-  tg.setBackgroundColor("#0a0a0f");
+  tg.setHeaderColor("#06060c");
+  tg.setBackgroundColor("#06060c");
   initData = tg.initData || "";
 }
 
@@ -96,19 +96,20 @@ async function initStickers(root = document) {
 
 // ─── Confetti ────────────────────────────────────────────────────
 function showConfetti() {
-  const colors = ["#4FC3F7", "#66BB6A", "#FFAB91", "#FFD740", "#B388FF", "#F06292", "#26C6DA", "#A8E6CF"];
-  for (let i = 0; i < 40; i++) {
+  const colors = ["#4FC3F7", "#66BB6A", "#FFAB91", "#FFD740", "#B388FF", "#F06292", "#26C6DA", "#A8E6CF", "#FF6B35", "#81D4FA"];
+  for (let i = 0; i < 55; i++) {
     const piece = document.createElement("div");
     piece.className = "confetti-piece";
     piece.style.left = Math.random() * 100 + "vw";
     piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-    piece.style.animationDuration = (1.5 + Math.random() * 2) + "s";
-    piece.style.animationDelay = Math.random() * 0.5 + "s";
-    piece.style.width = (4 + Math.random() * 6) + "px";
-    piece.style.height = (4 + Math.random() * 6) + "px";
-    piece.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+    piece.style.animationDuration = (2 + Math.random() * 2.5) + "s";
+    piece.style.animationDelay = Math.random() * 0.8 + "s";
+    piece.style.width = (4 + Math.random() * 8) + "px";
+    piece.style.height = (4 + Math.random() * 8) + "px";
+    piece.style.borderRadius = Math.random() > 0.5 ? "50%" : Math.random() > 0.5 ? "2px" : "0";
+    piece.style.opacity = (0.7 + Math.random() * 0.3).toString();
     document.body.appendChild(piece);
-    setTimeout(() => piece.remove(), 4000);
+    setTimeout(() => piece.remove(), 5000);
   }
 }
 
@@ -120,12 +121,33 @@ let wheelPrizes = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1];
 let wheelSpinning = false;
 let wheelAngle = 0;
 
-// ─── Navigation ──────────────────────────────────────────────────
+// ─── Ripple effect ───────────────────────────────────────────────
+function addRipple(e, el) {
+  const rect = el.getBoundingClientRect();
+  const ripple = document.createElement("span");
+  ripple.className = "ripple";
+  const size = Math.max(rect.width, rect.height);
+  ripple.style.width = ripple.style.height = size + "px";
+  ripple.style.left = (e.clientX - rect.left - size / 2) + "px";
+  ripple.style.top = (e.clientY - rect.top - size / 2) + "px";
+  el.style.position = el.style.position || "relative";
+  el.style.overflow = "hidden";
+  el.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}
+
+// ─── Navigation with page transitions ────────────────────────────
 function showPage(pageId) {
+  const prevPage = $(".page:not(.hidden)");
+
   $$(".page").forEach((p) => p.classList.add("hidden"));
   const page = $("#" + pageId);
   if (page) {
     page.classList.remove("hidden");
+    /* Re-trigger entrance animation */
+    page.style.animation = "none";
+    page.offsetHeight; /* force reflow */
+    page.style.animation = "";
     currentPage = pageId;
   }
 
@@ -143,11 +165,23 @@ function showPage(pageId) {
     case "pageProfile":   loadProfile(); break;
     case "pageAdmin":     loadAdmin(); break;
   }
+
+  /* Scroll to top on page switch */
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   $$(".nav-btn").forEach((btn) => {
-    btn.addEventListener("click", () => showPage(btn.dataset.page));
+    btn.addEventListener("click", (e) => {
+      addRipple(e, btn);
+      showPage(btn.dataset.page);
+    });
+  });
+
+  /* Add ripple to all primary buttons */
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-primary, .daily-claim-btn, .task-btn");
+    if (btn) addRipple(e, btn);
   });
 });
 
@@ -380,8 +414,8 @@ function drawWheel(angle = 0) {
   ctx.beginPath();
   ctx.arc(cx, cy, outerR, 0, 2 * Math.PI);
   const ringGrad = ctx.createLinearGradient(0, 0, size, size);
-  ringGrad.addColorStop(0, "#22223a");
-  ringGrad.addColorStop(1, "#16161e");
+  ringGrad.addColorStop(0, "#1a1a2e");
+  ringGrad.addColorStop(1, "#0e0e18");
   ctx.fillStyle = ringGrad;
   ctx.fill();
 
@@ -437,7 +471,7 @@ function drawWheel(angle = 0) {
   // Center circle
   ctx.beginPath();
   ctx.arc(cx, cy, 26, 0, 2 * Math.PI);
-  ctx.fillStyle = "#22223a";
+  ctx.fillStyle = "#1a1a2e";
   ctx.fill();
   ctx.beginPath();
   ctx.arc(cx, cy, 23, 0, 2 * Math.PI);
@@ -784,7 +818,7 @@ async function loadProfile() {
     const initials = (l.name || "?").slice(0, 2).toUpperCase();
     const isMe = data.my_id === l.user_id;
     return `
-      <div class="leader-row" ${isMe ? 'style="background:rgba(33,150,243,.15);border-color:rgba(33,150,243,.3)"' : ""}>
+      <div class="leader-row" ${isMe ? 'style="background:rgba(33,150,243,.08);border-color:rgba(33,150,243,.15)"' : ""}>
         <div class="leader-rank-num">${rank}</div>
         <div class="leader-avatar-sm">${initials}</div>
         <div class="leader-info">
