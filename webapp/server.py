@@ -165,6 +165,7 @@ async def api_me(request: web.Request):
         "is_premium": user.is_premium,
         "is_admin": user.user_id in config.ADMIN_IDS,
         "wallet_address": user.wallet_address,
+        "last_daily_claim": user.last_daily_claim.isoformat() if user.last_daily_claim else None,
     })
 
 
@@ -639,6 +640,75 @@ async def api_admin_broadcast(request: web.Request):
     })
 
 
+# ──────────────────────────── Daily Bonus API ─────────────────────────
+
+async def api_daily_status(request: web.Request):
+    """GET /api/daily - daily check-in status"""
+    tg_user, user = await get_user_from_request(request)
+    if not user:
+        return error_response("Unauthorized", 401)
+
+    now = datetime.now()
+    streak = user.login_streak or 0
+    # День в цикле (0-6)
+    day_index = (streak - 1) % len(config.DAILY_REWARDS) if streak > 0 else 0
+
+    # Можно ли забрать бонус сегодня
+    already_claimed = False
+    if user.last_daily_claim:
+        already_claimed = user.last_daily_claim.date() == now.date()
+
+    rewards = config.DAILY_REWARDS
+    return json_response({
+        "streak": streak,
+        "day_index": day_index,
+        "already_claimed": already_claimed,
+        "rewards": rewards,
+        "today_reward": rewards[day_index],
+    })
+
+
+async def api_daily_claim(request: web.Request):
+    """POST /api/daily/claim - claim daily bonus"""
+    tg_user, user = await get_user_from_request(request)
+    if not user:
+        return error_response("Unauthorized", 401)
+
+    now = datetime.now()
+
+    async with await db.get_session() as session:
+        user_obj = await UserQueries.get_user(session, user.user_id)
+        if not user_obj:
+            return error_response("User not found")
+
+        # Проверяем, не забирал ли уже сегодня
+        if user_obj.last_daily_claim and user_obj.last_daily_claim.date() == now.date():
+            return error_response("Бонус уже получен сегодня")
+
+        streak = user_obj.login_streak or 0
+        if streak == 0:
+            streak = 1
+        day_index = (streak - 1) % len(config.DAILY_REWARDS)
+        reward = config.DAILY_REWARDS[day_index]
+
+        # Начисляем
+        user_obj.balance += reward
+        user_obj.total_earned += reward
+        user_obj.last_daily_claim = now
+        await session.commit()
+
+        # Обновляем данные пользователя
+        user_obj = await UserQueries.get_user(session, user.user_id)
+
+    return json_response({
+        "success": True,
+        "reward": reward,
+        "day_index": day_index,
+        "streak": streak,
+        "balance": round(user_obj.balance, 3),
+    })
+
+
 # ──────────────────────────── App factory ─────────────────────────────
 
 def create_app() -> web.Application:
@@ -673,6 +743,8 @@ def create_app() -> web.Application:
     app.router.add_get("/api/leaderboard", api_leaderboard)
     app.router.add_post("/api/withdraw", api_withdraw_request)
     app.router.add_get("/api/history", api_history)
+    app.router.add_get("/api/daily", api_daily_status)
+    app.router.add_post("/api/daily/claim", api_daily_claim)
 
     # Admin API routes
     app.router.add_get("/api/admin/stats", api_admin_stats)

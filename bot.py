@@ -18,7 +18,7 @@ from webapp.server import start_webapp
 from handlers import (
     start, language, tasks, profile, wallet,
     wheel, referrals, leaders, advertiser, admin,
-    admin_tasks, admin_withdrawals, deposit, instructions
+    admin_tasks, admin_withdrawals, deposit, instructions, daily
 )
 from middlewares.language import LanguageMiddleware
 
@@ -169,6 +169,7 @@ async def main():
     dp.include_router(admin_withdrawals.router)
     dp.include_router(deposit.router)
     dp.include_router(instructions.router)
+    dp.include_router(daily.router)
 
     await on_startup()
 

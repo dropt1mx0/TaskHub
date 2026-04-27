@@ -203,6 +203,14 @@ TRANSLATIONS = {
         # Anti-cheat
         'anti_abuse': 'Обнаружена подозрительная активность',
         'try_later': 'Попробуйте позже',
+        
+        # Daily bonus
+        'daily_title': 'Ежедневный бонус',
+        'daily_streak': 'Серия',
+        'daily_already_claimed': 'Бонус уже получен сегодня. Возвращайтесь завтра!',
+        'daily_claim_prompt': 'Нажмите кнопку, чтобы получить +{reward} USDT',
+        'daily_claimed_success': 'Бонус получен!',
+        'daily_bonus_btn': 'Ежедневный бонус',
     }
 }
 

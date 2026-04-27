@@ -24,6 +24,25 @@
       <!-- ═══ Задания ═══ -->
       <section class="page" id="pageTasks">
         <div class="page-title-bar"><h1>Задания</h1></div>
+
+        <!-- Daily Check-in Card -->
+        <div class="daily-card" id="dailyCard">
+          <div class="daily-header">
+            <div class="daily-header-left">
+              <span class="daily-icon">&#127873;</span>
+              <span class="daily-title">Ежедневный бонус</span>
+            </div>
+            <div class="daily-streak-badge" id="dailyStreakBadge">
+              <span class="daily-streak-fire">&#128293;</span>
+              <span id="dailyStreakNum">0</span> дн.
+            </div>
+          </div>
+          <div class="daily-days" id="dailyDays">
+            <!-- JS will render 7 day circles -->
+          </div>
+          <button class="daily-claim-btn" id="btnDailyClaim">Забрать бонус</button>
+        </div>
+
         <div class="sub-title">Доп. задания</div>
         <div id="tasksList" class="tasks-list">
           <div class="empty-state">

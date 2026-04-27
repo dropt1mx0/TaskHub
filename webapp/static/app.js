@@ -136,7 +136,7 @@ function showPage(pageId) {
   haptic();
 
   switch (pageId) {
-    case "pageTasks":     loadTasks(); break;
+    case "pageTasks":     loadDaily(); loadTasks(); break;
     case "pageWheel":     loadWheel(); break;
     case "pageReferrals": loadReferrals(); break;
     case "pageWallet":    loadWallet(); break;
@@ -265,6 +265,96 @@ function openTask(taskId) {
     }
   });
 }
+
+// ─── Daily Check-in ──────────────────────────────────────────
+let dailyData = null;
+
+async function loadDaily() {
+  const data = await api("/daily");
+  if (data.error) return;
+  dailyData = data;
+  renderDaily(data);
+}
+
+function renderDaily(data) {
+  const container = $("#dailyDays");
+  const btn = $("#btnDailyClaim");
+  const streakNum = $("#dailyStreakNum");
+  if (!container || !btn) return;
+
+  const rewards = data.rewards || [];
+  const dayIndex = data.day_index || 0;
+  const streak = data.streak || 0;
+  const claimed = data.already_claimed;
+
+  streakNum.textContent = streak;
+
+  container.innerHTML = rewards.map((r, i) => {
+    let cls = "daily-day";
+    let circleContent = i + 1;
+
+    if (i < dayIndex) {
+      cls += " claimed";
+      circleContent = "&#10003;";
+    } else if (i === dayIndex) {
+      if (claimed) {
+        cls += " claimed";
+        circleContent = "&#10003;";
+      } else {
+        cls += " active";
+      }
+    } else {
+      cls += " future";
+    }
+
+    return `
+      <div class="${cls}">
+        <div class="daily-day-num">Д${i + 1}</div>
+        <div class="daily-day-circle">${circleContent}</div>
+        <div class="daily-day-reward">${r} &#11088;</div>
+      </div>`;
+  }).join("");
+
+  if (claimed) {
+    btn.disabled = true;
+    btn.textContent = "Получено \u2714";
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = `Забрать +${fmt(rewards[dayIndex])} &#11088;`;
+  }
+}
+
+async function claimDaily() {
+  const btn = $("#btnDailyClaim");
+  if (!btn || btn.disabled) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span>';
+  haptic();
+
+  const res = await api("/daily/claim", { method: "POST" });
+
+  if (res.success) {
+    haptic("success");
+    toast(`+${fmt(res.reward)} USDT получено!`);
+    showConfetti();
+    if (userData) {
+      userData.balance = res.balance;
+      userData.login_streak = res.streak;
+    }
+    // Обновляем карточку
+    await loadDaily();
+  } else {
+    haptic("error");
+    toast(res.error || "Ошибка");
+    btn.disabled = false;
+    btn.textContent = "Забрать бонус";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  $("#btnDailyClaim")?.addEventListener("click", claimDaily);
+});
 
 // ─── Fortune Wheel (Canvas) ──────────────────────────────────────
 const WHEEL_COLORS = [

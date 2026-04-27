@@ -50,6 +50,9 @@ class User(Base):
     created_at = Column(DateTime, default=func.now())
     last_activity = Column(DateTime, default=func.now(), onupdate=func.now())
     
+    # Ежедневный бонус
+    last_daily_claim = Column(DateTime, nullable=True)  # Дата последнего получения дневного бонуса
+    
     # Кошелек
     wallet_address = Column(String(255), nullable=True)
     

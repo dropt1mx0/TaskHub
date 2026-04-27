@@ -56,12 +56,28 @@ class Database:
             async with self.engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
             
+            # Миграция: добавляем новые колонки если их нет
+            await self._run_migrations()
+            
             self._initialized = True
             logger.success(f"Database initialized successfully")
             
         except Exception as e:
             logger.error(f"Database initialization failed: {e}")
             raise
+    
+    async def _run_migrations(self):
+        """Применить миграции (добавление новых колонок)"""
+        migrations = [
+            ("users", "last_daily_claim", "DATETIME"),
+        ]
+        async with self.engine.begin() as conn:
+            for table, column, col_type in migrations:
+                try:
+                    await conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
+                    logger.info(f"Migration: added {table}.{column}")
+                except Exception:
+                    pass  # Колонка уже существует
     
     async def create_pool(self):
         """Создать пул соединений (для оптимизации)"""
