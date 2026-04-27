@@ -8,8 +8,8 @@ let initData = "";
 if (tg) {
   tg.ready();
   tg.expand();
-  tg.setHeaderColor("#050508");
-  tg.setBackgroundColor("#050508");
+  tg.setHeaderColor("#0a0a0f");
+  tg.setBackgroundColor("#0a0a0f");
   initData = tg.initData || "";
 }
 
@@ -96,7 +96,7 @@ async function initStickers(root = document) {
 
 // ─── Confetti ────────────────────────────────────────────────────
 function showConfetti() {
-  const colors = ["#2196F3", "#4FC3F7", "#66BB6A", "#FFD740", "#EF5350", "#7C4DFF", "#EC407A", "#26C6DA"];
+  const colors = ["#4FC3F7", "#66BB6A", "#FFAB91", "#FFD740", "#B388FF", "#F06292", "#26C6DA", "#A8E6CF"];
   for (let i = 0; i < 40; i++) {
     const piece = document.createElement("div");
     piece.className = "confetti-piece";
@@ -380,8 +380,8 @@ function drawWheel(angle = 0) {
   ctx.beginPath();
   ctx.arc(cx, cy, outerR, 0, 2 * Math.PI);
   const ringGrad = ctx.createLinearGradient(0, 0, size, size);
-  ringGrad.addColorStop(0, "#2d2d30");
-  ringGrad.addColorStop(1, "#1a1a1c");
+  ringGrad.addColorStop(0, "#22223a");
+  ringGrad.addColorStop(1, "#16161e");
   ctx.fillStyle = ringGrad;
   ctx.fill();
 
@@ -415,14 +415,14 @@ function drawWheel(angle = 0) {
     ctx.fillStyle = sliceGrad;
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(0,0,0,.2)";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(0,0,0,.25)";
+    ctx.lineWidth = 1.5;
     ctx.stroke();
 
     ctx.save();
     ctx.rotate(startAngle + arc / 2);
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 14px -apple-system, SF Pro Display, sans-serif";
+    ctx.font = "800 14px Nunito, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.shadowColor = "rgba(0,0,0,.5)";
@@ -437,7 +437,7 @@ function drawWheel(angle = 0) {
   // Center circle
   ctx.beginPath();
   ctx.arc(cx, cy, 26, 0, 2 * Math.PI);
-  ctx.fillStyle = "#1a1a1c";
+  ctx.fillStyle = "#22223a";
   ctx.fill();
   ctx.beginPath();
   ctx.arc(cx, cy, 23, 0, 2 * Math.PI);
@@ -447,7 +447,7 @@ function drawWheel(angle = 0) {
   ctx.fillStyle = centerGrad;
   ctx.fill();
   ctx.fillStyle = "#fff";
-  ctx.font = "bold 10px -apple-system, sans-serif";
+  ctx.font = "800 10px Nunito, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("SPIN", cx, cy);
@@ -784,7 +784,7 @@ async function loadProfile() {
     const initials = (l.name || "?").slice(0, 2).toUpperCase();
     const isMe = data.my_id === l.user_id;
     return `
-      <div class="leader-row" ${isMe ? 'style="background:rgba(33,150,243,.1)"' : ""}>
+      <div class="leader-row" ${isMe ? 'style="background:rgba(33,150,243,.15);border-color:rgba(33,150,243,.3)"' : ""}>
         <div class="leader-rank-num">${rank}</div>
         <div class="leader-avatar-sm">${initials}</div>
         <div class="leader-info">
