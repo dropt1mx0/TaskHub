@@ -8,8 +8,8 @@ let initData = "";
 if (tg) {
   tg.ready();
   tg.expand();
-  tg.setHeaderColor("#06060c");
-  tg.setBackgroundColor("#06060c");
+  tg.setHeaderColor("#000000");
+  tg.setBackgroundColor("#000000");
   initData = tg.initData || "";
 }
 
@@ -96,8 +96,8 @@ async function initStickers(root = document) {
 
 // ─── Confetti ────────────────────────────────────────────────────
 function showConfetti() {
-  const colors = ["#4FC3F7", "#66BB6A", "#FFAB91", "#FFD740", "#B388FF", "#F06292", "#26C6DA", "#A8E6CF", "#FF6B35", "#81D4FA"];
-  for (let i = 0; i < 55; i++) {
+  const colors = ["#0098EA", "#34C759", "#FF9500", "#FFD60A", "#AF52DE", "#FF3B30", "#33ADF0", "#5AC8FA"];
+  for (let i = 0; i < 40; i++) {
     const piece = document.createElement("div");
     piece.className = "confetti-piece";
     piece.style.left = Math.random() * 100 + "vw";
@@ -392,8 +392,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ─── Fortune Wheel (Canvas) ──────────────────────────────────────
 const WHEEL_COLORS = [
-  "#2196F3", "#66BB6A", "#7C4DFF", "#FFD740",
-  "#EC407A", "#26C6DA", "#EF5350", "#4FC3F7"
+  "#0098EA", "#34C759", "#AF52DE", "#FFD60A",
+  "#FF3B30", "#5AC8FA", "#FF9500", "#0077BB"
 ];
 
 function drawWheel(angle = 0) {
@@ -414,8 +414,8 @@ function drawWheel(angle = 0) {
   ctx.beginPath();
   ctx.arc(cx, cy, outerR, 0, 2 * Math.PI);
   const ringGrad = ctx.createLinearGradient(0, 0, size, size);
-  ringGrad.addColorStop(0, "#1a1a2e");
-  ringGrad.addColorStop(1, "#0e0e18");
+  ringGrad.addColorStop(0, "#1C1C1E");
+  ringGrad.addColorStop(1, "#000000");
   ctx.fillStyle = ringGrad;
   ctx.fill();
 
@@ -426,7 +426,7 @@ function drawWheel(angle = 0) {
     const dotY = cy + (outerR - 4) * Math.sin(dotAngle);
     ctx.beginPath();
     ctx.arc(dotX, dotY, 2, 0, 2 * Math.PI);
-    ctx.fillStyle = i % 2 === 0 ? "rgba(255,255,255,.3)" : "rgba(33,150,243,.4)";
+    ctx.fillStyle = i % 2 === 0 ? "rgba(255,255,255,.25)" : "rgba(0,152,234,.4)";
     ctx.fill();
   }
 
@@ -456,7 +456,7 @@ function drawWheel(angle = 0) {
     ctx.save();
     ctx.rotate(startAngle + arc / 2);
     ctx.fillStyle = "#fff";
-    ctx.font = "800 14px Nunito, -apple-system, sans-serif";
+    ctx.font = "700 14px Inter, -apple-system, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.shadowColor = "rgba(0,0,0,.5)";
@@ -471,17 +471,17 @@ function drawWheel(angle = 0) {
   // Center circle
   ctx.beginPath();
   ctx.arc(cx, cy, 26, 0, 2 * Math.PI);
-  ctx.fillStyle = "#1a1a2e";
+  ctx.fillStyle = "#1C1C1E";
   ctx.fill();
   ctx.beginPath();
   ctx.arc(cx, cy, 23, 0, 2 * Math.PI);
   const centerGrad = ctx.createLinearGradient(cx - 23, cy - 23, cx + 23, cy + 23);
-  centerGrad.addColorStop(0, "#2196F3");
-  centerGrad.addColorStop(1, "#64B5F6");
+  centerGrad.addColorStop(0, "#0098EA");
+  centerGrad.addColorStop(1, "#33ADF0");
   ctx.fillStyle = centerGrad;
   ctx.fill();
   ctx.fillStyle = "#fff";
-  ctx.font = "800 10px Nunito, sans-serif";
+  ctx.font = "700 10px Inter, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("SPIN", cx, cy);
@@ -818,7 +818,7 @@ async function loadProfile() {
     const initials = (l.name || "?").slice(0, 2).toUpperCase();
     const isMe = data.my_id === l.user_id;
     return `
-      <div class="leader-row" ${isMe ? 'style="background:rgba(33,150,243,.08);border-color:rgba(33,150,243,.15)"' : ""}>
+      <div class="leader-row" ${isMe ? 'style="background:rgba(0,152,234,.1);box-shadow:inset 0 0 0 1px rgba(0,152,234,.2)"' : ""}>
         <div class="leader-rank-num">${rank}</div>
         <div class="leader-avatar-sm">${initials}</div>
         <div class="leader-info">
